@@ -3,27 +3,27 @@ const SocketServer = require('ws').Server;
 const express = require('express');
 const path = require('path');
 const fs = require("fs");
-var credentials = require('./credentials.json');
-var app = express();
-var accessToken;
-var already_authorized = false;
+let credentials = require('./credentials.json');
+let app = express();
+let accessToken;
+let already_authorized = false;
 
-var scopes = ['user-read-private', 'user-read-email', 'user-read-playback-state', 'user-read-currently-playing', 'user-modify-playback-state'];
-var state = 'Ledgend';
-
-
-
-var spotifyApi = new SpotifyWebApi(credentials);
-var authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
+let scopes = ['user-read-private', 'user-read-email', 'user-read-playback-state', 'user-read-currently-playing', 'user-modify-playback-state'];
+let state = 'Ledgend';
 
 
 
+let spotifyApi = new SpotifyWebApi(credentials);
+let authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
 
-var router = express.Router();
-var port = process.env.PORT || 9669;
+
+
+
+let router = express.Router();
+let port = process.env.PORT || 9669;
 app.get('/auth', function(req, res) {
     res.sendFile(path.join(__dirname + '/static/auth/index.html'));
-    var auth_code = req.query;
+    let auth_code = req.query;
     console.log("AUTH CODE:", auth_code);
     if(auth_code.code != null){
       spotifyApi.authorizationCodeGrant(auth_code.code).then(
@@ -37,7 +37,7 @@ app.get('/auth', function(req, res) {
           already_authorized = true;
           spotifyApi.setAccessToken(data.body['access_token']);
           spotifyApi.setRefreshToken(data.body['refresh_token']);
-          var auth_url = {type: "auth", value: {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
+          let auth_url = {type: "auth", value: {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
           broadcast(JSON.stringify(auth_url));
           setInterval(function() {
             spotifyApi.refreshAccessToken().then(
@@ -47,7 +47,7 @@ app.get('/auth', function(req, res) {
 
                 // Save the access token so that it's used in future calls
                 spotifyApi.setAccessToken(data.body['access_token']);
-                var auth_url = {type: "auth", value: {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
+                let auth_url = {type: "auth", value: {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
                 broadcast(JSON.stringify(auth_url));
               },
               function(err) {
@@ -73,7 +73,7 @@ app.get('/', function(req, res) {
 app.use("/auth", router);
 app.use("/", router);
 app.use(express.static('static'))
-var server = app.listen(port, function () {
+let server = app.listen(port, function () {
     console.log('node.js static content and REST server listening on port: ' + port);
 })
 
@@ -88,7 +88,7 @@ function broadcast(data){
 
 function checkDataType(data){
   try{
-    var json_data = JSON.parse(data);
+    let json_data = JSON.parse(data);
     return json_data
   }
   catch(err){
@@ -99,15 +99,15 @@ function checkDataType(data){
 wss.on('connection', ws => {
   console.log('Połączono o: ' + new Date());
   if(already_authorized){
-    var auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
+    let auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
   }
   else{
-    var auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized}};
+    let auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized}};
   }
   console.log(auth_url);
   // broadcast(JSON.stringify(auth_url));
   ws.on('message', data => {
-    var message_and_type = checkDataType(data);
+    let message_and_type = checkDataType(data);
     // console.log(message_and_type);
 
     if(message_and_type["type"] == "conn"){
@@ -115,10 +115,10 @@ wss.on('connection', ws => {
     }
     else if(message_and_type["type"] == "auth?"){
       if(already_authorized){
-        var auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken, "returnValue": message_and_type["value"]}};
+        let auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken, "returnValue": message_and_type["value"]}};
       }
       else{
-        var auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "returnValue": message_and_type["value"]}};
+        let auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "returnValue": message_and_type["value"]}};
       }
 
       broadcast(JSON.stringify(auth_url));
