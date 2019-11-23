@@ -3,24 +3,28 @@ const SocketServer = require('ws').Server;
 const express = require('express');
 const path = require('path');
 const fs = require("fs");
-let credentials = require('./credentials.json');
-let app = express();
+const credentials = require('./credentials.json');
+const app = express();
+const router = express.Router();
+
+const PORT = process.env.PORT || 9669;
+
+const scopes = [
+  'user-read-private', 'user-read-email',
+  'user-read-playback-state', 'user-read-currently-playing',
+  'user-modify-playback-state'
+];
+const state = 'Ledgend';
+
+const spotifyApi = new SpotifyWebApi(credentials);
+const authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
+
+
+// accessToken will eventually contain the access token
 let accessToken;
 let already_authorized = false;
 
-let scopes = ['user-read-private', 'user-read-email', 'user-read-playback-state', 'user-read-currently-playing', 'user-modify-playback-state'];
-let state = 'Ledgend';
 
-
-
-let spotifyApi = new SpotifyWebApi(credentials);
-let authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
-
-
-
-
-let router = express.Router();
-let port = process.env.PORT || 9669;
 app.get('/auth', function(req, res) {
     res.sendFile(path.join(__dirname + '/static/auth/index.html'));
     let auth_code = req.query;
@@ -73,8 +77,8 @@ app.get('/', function(req, res) {
 app.use("/auth", router);
 app.use("/", router);
 app.use(express.static('static'))
-let server = app.listen(port, function () {
-    console.log('node.js static content and REST server listening on port: ' + port);
+let server = app.listen(PORT, function () {
+    console.log('Listening on port:', PORT);
 })
 
 
