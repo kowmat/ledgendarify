@@ -1,0 +1,24 @@
+{
+  "name": "ledgendarify",
+  "version": "1.0.0",
+  "description": "Ledgend + Spotify Track Analysis = Ledgendarify",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kowmat/ledgendarify.git"
+  },
+  "author": "kowmat",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kowmat/ledgendarify/issues"
+  },
+  "homepage": "https://github.com/kowmat/ledgendarify#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "spotify-web-api-node": "^4.0.0",
+    "ws": "^7.2.0"
+  }
+}
