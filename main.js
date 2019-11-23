@@ -48,19 +48,12 @@ app.get('/auth', (req, res) => {
         spotifyApi.setRefreshToken(data.body['refresh_token']);
 
         // create the auth url object for our broadcast function
-        let auth_url = {
-          type: "auth",
-          value: {
-            "authorizeURL": authorizeURL,
-            "already_authorized": already_authorized,
-            "accessToken": accessToken
-          }
-        };
+        let auth_url = createAuthUrlObject()
         broadcast(JSON.stringify(auth_url));
 
         // set interval to refresh the token yo
         setInterval(() => {
-          refreshAccessToken(auth_url)
+          refreshAccessToken()
         }, TOKEN_REFRESH_INTERVAL);
     },
     (err) => {
@@ -70,7 +63,20 @@ app.get('/auth', (req, res) => {
 });
 
 
-function refreshAccessToken(auth_url) {
+function createAuthUrlObject() {
+  let auth_url = {
+    type: "auth",
+    value: {
+      "authorizeURL": authorizeURL,
+      "already_authorized": already_authorized,
+      "accessToken": accessToken
+    }
+  };
+  return auth_url
+}
+
+
+function refreshAccessToken() {
   spotifyApi.refreshAccessToken().then(
     (data) => {
       console.log('The access token has been refreshed!');
@@ -78,6 +84,7 @@ function refreshAccessToken(auth_url) {
 
       // Save the access token so that it's used in future calls
       spotifyApi.setAccessToken(data.body['access_token']);
+      let auth_url = createAuthUrlObject()
       broadcast(JSON.stringify(auth_url));
     },
     (err) => {
