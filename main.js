@@ -19,54 +19,73 @@ const state = 'Ledgend';
 const spotifyApi = new SpotifyWebApi(credentials);
 const authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
 
+const TOKEN_REFRESH_INTERVAL = 1800000;
 
 // accessToken will eventually contain the access token
 let accessToken;
 let already_authorized = false;
 
 
-app.get('/auth', function(req, res) {
+app.get('/auth', (req, res) => {
     res.sendFile(path.join(__dirname + '/static/auth/index.html'));
-    let auth_code = req.query;
+
+    const auth_code = req.query;
     console.log("AUTH CODE:", auth_code);
-    if(auth_code.code != null){
-      spotifyApi.authorizationCodeGrant(auth_code.code).then(
-        function(data) {
-          console.log('The token expires in ' + data.body['expires_in']);
-          console.log('The access token is ' + data.body['access_token']);
-          console.log('The refresh token is ' + data.body['refresh_token']);
-
-          // Set the access token on the API object to use it in later calls
-          accessToken = data.body['access_token'];
-          already_authorized = true;
-          spotifyApi.setAccessToken(data.body['access_token']);
-          spotifyApi.setRefreshToken(data.body['refresh_token']);
-          let auth_url = {type: "auth", value: {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
-          broadcast(JSON.stringify(auth_url));
-          setInterval(function() {
-            spotifyApi.refreshAccessToken().then(
-              function(data) {
-                console.log('The access token has been refreshed!');
-                accessToken = data.body['access_token'];
-
-                // Save the access token so that it's used in future calls
-                spotifyApi.setAccessToken(data.body['access_token']);
-                let auth_url = {type: "auth", value: {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
-                broadcast(JSON.stringify(auth_url));
-              },
-              function(err) {
-                console.log('Could not refresh access token', err);
-              }
-            );
-          }, 1800000);
-          // 1800000
-        },
-        function(err) {
-          console.log('Something went wrong!', err);
-        }
-      );
+    if(auth_code.code == null){
+      return
     }
+
+    spotifyApi.authorizationCodeGrant(auth_code.code).then(
+      (data) => {
+        console.log('The token expires in ', data.body['expires_in']);
+        console.log('The access token is ', data.body['access_token']);
+        console.log('The refresh token is ', data.body['refresh_token']);
+
+        // Set the access token on the API object to use it in later calls
+        accessToken = data.body['access_token'];
+        already_authorized = true;
+        spotifyApi.setAccessToken(data.body['access_token']);
+        spotifyApi.setRefreshToken(data.body['refresh_token']);
+
+        // create the auth url object for our broadcast function
+        let auth_url = {
+          type: "auth",
+          value: {
+            "authorizeURL": authorizeURL,
+            "already_authorized": already_authorized,
+            "accessToken": accessToken
+          }
+        };
+        broadcast(JSON.stringify(auth_url));
+
+        // set interval to refresh the token yo
+        setInterval(() => {
+          refreshAccessToken(auth_url)
+        }, TOKEN_REFRESH_INTERVAL);
+    },
+    (err) => {
+      console.log('Error message:', err);
+    }
+  );
 });
+
+
+function refreshAccessToken(auth_url) {
+  spotifyApi.refreshAccessToken().then(
+    (data) => {
+      console.log('The access token has been refreshed!');
+      accessToken = data.body['access_token'];
+
+      // Save the access token so that it's used in future calls
+      spotifyApi.setAccessToken(data.body['access_token']);
+      broadcast(JSON.stringify(auth_url));
+    },
+    (err) => {
+      console.log('Could not refresh access token', err);
+    }
+  );
+}
+
 
 app.get('/', function(req, res) {
     res.sendFile(path.join(__dirname + '/static/home/index.html'));
