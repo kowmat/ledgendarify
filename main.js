@@ -124,11 +124,11 @@ function broadcast(data) {
 
 
 function checkDataType(data) {
-  try{
+  try {
     let json_data = JSON.parse(data);
     return json_data;
   }
-  catch(err){
+  catch(err) {
     return {"type": "else", "value": data};
   }
 }
@@ -140,13 +140,16 @@ ws_server.on('connection', (ws) => {
   ws.on('message', (data) => {
     // console.log(message_and_type);
 
-    let message_and_type = checkDataType(data);
-    let type = message_and_type["type"];
+    const message_and_type = checkDataType(data);
+    const type = message_and_type["type"];
 
     switch(type) {
       case "conn":
         console.log("New client connected :)", message_and_type["value"]);
 
+        break;
+
+      // i think it should be "auth". i aint changin it until you take a look
       case "auth?":
         // creating auth url
         let auth_url = createAuthUrlObject();
@@ -158,6 +161,8 @@ ws_server.on('connection', (ws) => {
         console.log('auth_url:', auth_url);
 
         broadcast(JSON.stringify(auth_url));
+
+        break;
     }
   });
 });

@@ -1,59 +1,76 @@
+
 function checkDataType(data){
-  try{
-    var json_data = JSON.parse(data);
-    return json_data
+  try {
+    const json_data = JSON.parse(data);
+    return json_data;
   }
-  catch(err){
-    return {"type": "else", "value": data}
+  catch(err) {
+    return {"type": "else", "value": data};
   }
 }
 
-var refreshButton = document.getElementById("refresh");
-var statusText = document.getElementById("status");
 
-refreshButton.addEventListener("click", function(){
+const refreshButton = document.getElementById("refresh");
+const statusText = document.getElementById("status");
+const LOCAL_STATIC_ADDRESS = window.location.host;
+
+console.log(LOCAL_STATIC_ADDRESS);
+
+refreshButton.addEventListener("click", () => {
   statusText.innerText = "...";
   ws.send(JSON.stringify({"type": "auth?"}));
 });
 
 statusText.innerText = "Not authorized";
 
-var accessToken;
-var LOCAL_STATIC_ADDRESS = window.location.host;
-console.log(LOCAL_STATIC_ADDRESS);
-var authOpened = false;
 
-var ws = new WebSocket(`ws://${LOCAL_STATIC_ADDRESS}`);
+const ws = new WebSocket(`ws://${LOCAL_STATIC_ADDRESS}`);
+// TODO: can i remove this comment? \/
 // ws.binaryType = "arraybuffer";
 
 
-
-ws.onopen = function() {
+ws.onopen = () => {
   // Web Socket is connected, send data using send()
   ws.send(JSON.stringify({"type": "conn", "value": "Web browser"}));
   ws.send(JSON.stringify({"type": "auth?", "value": "no_response"}));
-
 };
 
 
+let accessToken;
+let authOpened = false;
+
 ws.onmessage = (evt) => {
-  var received_msg = evt.data;
-  var message_and_type = checkDataType(received_msg);
-  console.log("Received message type:", message_and_type["type"], " value:", message_and_type["value"]);
-  if(message_and_type["type"] == "auth"){
-    var already_authorized = message_and_type["value"].already_authorized;
-    var returnValue = message_and_type["value"].returnValue;
-    if(!already_authorized && !authOpened){
-      console.log("FBI OPEN THE WINDOW!")
-      statusText.innerText = "Not authorized - probably an error";
-      authOpened = true;
-      window.open(message_and_type["value"].authorizeURL, '_blank');
-    }
-    else{
-      accessToken = message_and_type["value"].accessToken;
-      console.log("NEW ACCESS TOKEN");
-      statusText.innerText = "Authorized :)";
-      authOpened = false;
-    }
+  const received_msg = evt.data;
+  const message_and_type = checkDataType(received_msg);
+  const type = message_and_type["type"];
+  const value = message_and_type["value"];
+
+  console.log(
+    "Received message type:", type,
+    "value:", value
+  );
+
+  if ( type != "auth" ) {
+    return;
+  }
+
+  // TODO: unused \/
+  // const returnValue = value.returnValue;
+
+  const already_authorized = value.already_authorized;
+
+  if ( !already_authorized && !authOpened ) {
+    console.log("FBI OPEN THE WINDOW!")
+    statusText.innerText = "Not authorized - probably an error";
+
+    authOpened = true;
+    window.open(value.authorizeURL, '_blank');
+
+  } else {
+    console.log("NEW ACCESS TOKEN");
+    statusText.innerText = "Authorized :)";
+
+    accessToken = value.accessToken;
+    authOpened = false;
   }
 }
