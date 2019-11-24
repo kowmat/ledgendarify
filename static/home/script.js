@@ -25,7 +25,7 @@ statusText.innerText = "Not authorized";
 
 
 const ws = new WebSocket(`ws://${LOCAL_STATIC_ADDRESS}`);
-// TODO: can i remove this comment? \/
+// Might use later
 // ws.binaryType = "arraybuffer";
 
 
@@ -54,7 +54,7 @@ ws.onmessage = (evt) => {
     return;
   }
 
-  // TODO: unused \/
+  // Might use later
   // const returnValue = value.returnValue;
 
   const already_authorized = value.already_authorized;

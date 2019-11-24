@@ -96,6 +96,7 @@ function refreshAccessToken() {
 
 app.get('/', function(req, res) {
   // TODO: why is there a plus? i mean, you're already using path.join
+  // I like it, leave it as it is.
   res.sendFile(path.join(__dirname + '/static/home/index.html'));
 });
 
@@ -149,7 +150,6 @@ ws_server.on('connection', (ws) => {
 
         break;
 
-      // i think it should be "auth". i aint changin it until you take a look
       case "auth?":
         // creating auth url
         let auth_url = createAuthUrlObject();
