@@ -3,126 +3,166 @@ const SocketServer = require('ws').Server;
 const express = require('express');
 const path = require('path');
 const fs = require("fs");
-var credentials = require('./credentials.json');
-var app = express();
-var accessToken;
-var already_authorized = false;
+const credentials = require('./credentials.json');
+const app = express();
+const router = express.Router();
 
-var scopes = ['user-read-private', 'user-read-email', 'user-read-playback-state', 'user-read-currently-playing', 'user-modify-playback-state'];
-var state = 'Ledgend';
+const PORT = process.env.PORT || 9669;
+
+const scopes = [
+  'user-read-private', 'user-read-email',
+  'user-read-playback-state', 'user-read-currently-playing',
+  'user-modify-playback-state'
+];
+const state = 'Ledgend';
+
+const spotifyApi = new SpotifyWebApi(credentials);
+const authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
+
+const TOKEN_REFRESH_INTERVAL = 1800000;
+
+// accessToken will eventually contain the access token
+let accessToken;
+let already_authorized = false;
 
 
-
-var spotifyApi = new SpotifyWebApi(credentials);
-var authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
-
-
-
-
-var router = express.Router();
-var port = process.env.PORT || 9669;
-app.get('/auth', function(req, res) {
+app.get('/auth', (req, res) => {
     res.sendFile(path.join(__dirname + '/static/auth/index.html'));
-    var auth_code = req.query;
+
+    const auth_code = req.query;
     console.log("AUTH CODE:", auth_code);
-    if(auth_code.code != null){
-      spotifyApi.authorizationCodeGrant(auth_code.code).then(
-        function(data) {
-          console.log('The token expires in ' + data.body['expires_in']);
-          console.log('The access token is ' + data.body['access_token']);
-          console.log('The refresh token is ' + data.body['refresh_token']);
-
-          // Set the access token on the API object to use it in later calls
-          accessToken = data.body['access_token'];
-          already_authorized = true;
-          spotifyApi.setAccessToken(data.body['access_token']);
-          spotifyApi.setRefreshToken(data.body['refresh_token']);
-          var auth_url = {type: "auth", value: {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
-          broadcast(JSON.stringify(auth_url));
-          setInterval(function() {
-            spotifyApi.refreshAccessToken().then(
-              function(data) {
-                console.log('The access token has been refreshed!');
-                accessToken = data.body['access_token'];
-
-                // Save the access token so that it's used in future calls
-                spotifyApi.setAccessToken(data.body['access_token']);
-                var auth_url = {type: "auth", value: {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
-                broadcast(JSON.stringify(auth_url));
-              },
-              function(err) {
-                console.log('Could not refresh access token', err);
-              }
-            );
-          }, 1800000);
-          // 1800000
-        },
-        function(err) {
-          console.log('Something went wrong!', err);
-        }
-      );
+    if(auth_code.code == null){
+      return
     }
+
+    spotifyApi.authorizationCodeGrant(auth_code.code).then(
+      (data) => {
+        console.log('The token expires in ', data.body['expires_in']);
+        console.log('The access token is ', data.body['access_token']);
+        console.log('The refresh token is ', data.body['refresh_token']);
+
+        // Set the access token on the API object to use it in later calls
+        accessToken = data.body['access_token'];
+        already_authorized = true;
+        spotifyApi.setAccessToken(data.body['access_token']);
+        spotifyApi.setRefreshToken(data.body['refresh_token']);
+
+        // create the auth url object for our broadcast function
+        let auth_url = createAuthUrlObject()
+        broadcast(JSON.stringify(auth_url));
+
+        // set interval to refresh the token yo
+        setInterval(() => {
+          refreshAccessToken()
+        }, TOKEN_REFRESH_INTERVAL);
+    },
+    (err) => {
+      console.log('Error message:', err);
+    }
+  );
 });
 
+
+function createAuthUrlObject() {
+  let auth_url = {
+    type: "auth",
+    value: {
+      "authorizeURL": authorizeURL,
+      "already_authorized": already_authorized,
+      "accessToken": accessToken
+    }
+  };
+  return auth_url;
+}
+
+
+function refreshAccessToken() {
+  spotifyApi.refreshAccessToken().then(
+    (data) => {
+      console.log('The access token has been refreshed!');
+      accessToken = data.body['access_token'];
+
+      // Save the access token so that it's used in future calls
+      spotifyApi.setAccessToken(data.body['access_token']);
+      let auth_url = createAuthUrlObject()
+      broadcast(JSON.stringify(auth_url));
+    },
+    (err) => {
+      console.log('Could not refresh access token', err);
+    }
+  );
+}
+
+
 app.get('/', function(req, res) {
-    res.sendFile(path.join(__dirname + '/static/home/index.html'));
+  // TODO: why is there a plus? i mean, you're already using path.join
+  // I like it, leave it as it is.
+  res.sendFile(path.join(__dirname + '/static/home/index.html'));
 });
 
 
 //connect path to router
 app.use("/auth", router);
 app.use("/", router);
-app.use(express.static('static'))
-var server = app.listen(port, function () {
-    console.log('node.js static content and REST server listening on port: ' + port);
-})
+app.use(express.static('static'));
 
 
-const wss = new SocketServer({ server });
+// defining the express server
+const server = app.listen(PORT, () => {
+  console.log('Listening on port:', PORT);
+});
 
-function broadcast(data){
-  wss.clients.forEach(ws => {
+
+// defining the websocket server
+const ws_server = new SocketServer({ server });
+
+
+function broadcast(data) {
+  ws_server.clients.forEach(ws => {
     ws.send(data);
   });
 }
 
-function checkDataType(data){
-  try{
-    var json_data = JSON.parse(data);
-    return json_data
+
+function checkDataType(data) {
+  try {
+    let json_data = JSON.parse(data);
+    return json_data;
   }
-  catch(err){
-    return {"type": "else", "value": data}
+  catch(err) {
+    return {"type": "else", "value": data};
   }
 }
 
-wss.on('connection', ws => {
+
+ws_server.on('connection', (ws) => {
   console.log('Połączono o: ' + new Date());
-  if(already_authorized){
-    var auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
-  }
-  else{
-    var auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized}};
-  }
-  console.log(auth_url);
-  // broadcast(JSON.stringify(auth_url));
-  ws.on('message', data => {
-    var message_and_type = checkDataType(data);
+
+  ws.on('message', (data) => {
     // console.log(message_and_type);
 
-    if(message_and_type["type"] == "conn"){
-      console.log("New client connected :)", message_and_type["value"]);
-    }
-    else if(message_and_type["type"] == "auth?"){
-      if(already_authorized){
-        var auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken, "returnValue": message_and_type["value"]}};
-      }
-      else{
-        var auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "returnValue": message_and_type["value"]}};
-      }
+    const message_and_type = checkDataType(data);
+    const type = message_and_type["type"];
 
-      broadcast(JSON.stringify(auth_url));
-    }
+    switch(type) {
+      case "conn":
+        console.log("New client connected :)", message_and_type["value"]);
 
+        break;
+
+      case "auth?":
+        // creating auth url
+        let auth_url = createAuthUrlObject();
+        if( !already_authorized ){
+          delete auth_url.value.accessToken;
+        }
+        auth_url.returnValue = message_and_type["value"];
+
+        console.log('auth_url:', auth_url);
+
+        broadcast(JSON.stringify(auth_url));
+
+        break;
+    }
   });
 });
