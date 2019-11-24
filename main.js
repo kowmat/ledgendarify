@@ -72,7 +72,7 @@ function createAuthUrlObject() {
       "accessToken": accessToken
     }
   };
-  return auth_url
+  return auth_url;
 }
 
 
@@ -95,64 +95,69 @@ function refreshAccessToken() {
 
 
 app.get('/', function(req, res) {
-    res.sendFile(path.join(__dirname + '/static/home/index.html'));
+  // TODO: why is there a plus? i mean, you're already using path.join
+  res.sendFile(path.join(__dirname + '/static/home/index.html'));
 });
 
 
 //connect path to router
 app.use("/auth", router);
 app.use("/", router);
-app.use(express.static('static'))
-let server = app.listen(PORT, function () {
-    console.log('Listening on port:', PORT);
-})
+app.use(express.static('static'));
 
 
-const wss = new SocketServer({ server });
+// defining the express server
+const server = app.listen(PORT, () => {
+  console.log('Listening on port:', PORT);
+});
 
-function broadcast(data){
-  wss.clients.forEach(ws => {
+
+// defining the websocket server
+const ws_server = new SocketServer({ server });
+
+
+function broadcast(data) {
+  ws_server.clients.forEach(ws => {
     ws.send(data);
   });
 }
 
-function checkDataType(data){
+
+function checkDataType(data) {
   try{
     let json_data = JSON.parse(data);
-    return json_data
+    return json_data;
   }
   catch(err){
-    return {"type": "else", "value": data}
+    return {"type": "else", "value": data};
   }
 }
 
-wss.on('connection', ws => {
+
+ws_server.on('connection', (ws) => {
   console.log('Połączono o: ' + new Date());
-  if(already_authorized){
-    let auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken}};
-  }
-  else{
-    let auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized}};
-  }
-  console.log(auth_url);
-  // broadcast(JSON.stringify(auth_url));
-  ws.on('message', data => {
-    let message_and_type = checkDataType(data);
+
+  ws.on('message', (data) => {
     // console.log(message_and_type);
 
-    if(message_and_type["type"] == "conn"){
-      console.log("New client connected :)", message_and_type["value"]);
-    }
-    else if(message_and_type["type"] == "auth?"){
-      if(already_authorized){
-        let auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "accessToken": accessToken, "returnValue": message_and_type["value"]}};
-      }
-      else{
-        let auth_url = {"type": "auth", "value": {"authorizeURL": authorizeURL, "already_authorized": already_authorized, "returnValue": message_and_type["value"]}};
-      }
+    let message_and_type = checkDataType(data);
+    let type = message_and_type["type"];
 
-      broadcast(JSON.stringify(auth_url));
-    }
+    switch(type) {
+      case "conn":
+        console.log("New client connected :)", message_and_type["value"]);
 
+      case "auth?":
+        // creating auth url
+        let auth_url = createAuthUrlObject();
+        if( !already_authorized ){
+          delete auth_url.value.accessToken;
+        }
+        auth_url.returnValue = message_and_type["value"];
+
+        console.log('auth_url:', auth_url);
+
+        broadcast(JSON.stringify(auth_url));
+    }
   });
 });
