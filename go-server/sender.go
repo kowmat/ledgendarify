@@ -45,4 +45,3 @@ func sender(c chan<- []ledgend.Change, buffer *ledgend.Buffer, fps int64) {
         }
     }()
 }
-

@@ -9,7 +9,8 @@ import (
 
 const (
     BROADCAST_DELAY float64 = 1000
-    PORT            uint16 = 10107  // the standard ledgend port
+    LEDSERV_PORT    uint16 = 10107  // the standard ledgend port
+    PORT            uint16 = 10108
     LEDS            uint16 = 150
     FPS             int64 = 60
 )
@@ -17,7 +18,7 @@ const (
 
 func main() {
     // initializing ledserv's server
-    send, err := ledserv.InitServer(PORT)
+    send, err := ledserv.InitServer(LEDSERV_PORT)
     if ( err != nil ) {
         log.Fatal(err)
     }
@@ -29,4 +30,6 @@ func main() {
     buffer := ledgend.GenBuffer(LEDS)
 
     sender(send, &buffer, FPS)
+
+    setupServer(PORT, "/json")
 }
