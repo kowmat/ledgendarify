@@ -4,6 +4,8 @@ import (
     "encoding/json"
     "net/http"
     "strconv"
+    "strings"
+    "errors"
     "log"
 )
 
@@ -24,6 +26,11 @@ The json should look something like this:
                         "r": 100,
                         "g": 125,
                         "b": 255
+                    },
+                    {
+                        "r": 100,
+                        "g": 125,
+                        "b": 255
                     }
                 ]
             }
@@ -31,21 +38,26 @@ The json should look something like this:
     }
 */
 type InstructionJSON struct {
-    InstructionType     string `json:"instruction_type"`
-    Animations          []struct {
-        Name                string  `json:"name"`
-        Direction           bool    `json:"direction"`
-        Start               float64 `json:"start"`
-        Length              float64 `json:"length"`
-        Duration            int     `json:"duration"`
-        TimeOffset          int     `json:"time_offset"`
-        Colors              []struct {
-            R                   int `json:"r"`
-            G                   int `json:"g"`
-            B                   int `json:"b"`
-        } `json:"colors"`
-    } `json:"animations"`
+	InstructionType    string          `json:"instruction_type"`
+	Animations         []AnimationJSON `json:"animations"`
 }
+
+type AnimationJSON struct {
+	Name       string      `json:"name"`
+	Direction  bool        `json:"direction"`
+	Start      float64     `json:"start"`
+	Length     float64     `json:"length"`
+	Duration   int         `json:"duration"`
+	TimeOffset int         `json:"time_offset"`
+	Colors     []ColorJSON `json:"colors"`
+}
+
+type ColorJSON struct {
+	R  uint8   `json:"r"`
+	G  uint8   `json:"g"`
+	B  uint8   `json:"b"`
+}
+
 
 
 var (
@@ -53,22 +65,52 @@ var (
 )
 
 
-func JSONEndpoint(w http.ResponseWriter, r *http.Request) {
-    if ( r.Method != "POST" ) {
-        return;
+func (ij *InstructionJSON) decode() (Instruction, error) {
+    var i Instruction
+
+    type_string := strings.ToLower(ij.InstructionType)
+
+    switch(type_string) {
+        case "clear":
+            i.instruction_type = CLEAR
+
+        case "idles":
+            i.instruction_type = IDLES
+
+        case "anims":
+            i.instruction_type = ANIMS
+            i.animations = getAnimations(ij.Animations)
+
+        default:
+            return i, errors.New("Unknown instruction type \""+type_string+"\"")
     }
 
-    var i InstructionJSON
+
+    return i, nil
+}
+
+
+func JSONEndpoint(w http.ResponseWriter, r *http.Request) {
+    if ( r.Method != "POST" ) {
+        return
+    }
+
+    var ij InstructionJSON
     decoder := json.NewDecoder(r.Body)
-    err := decoder.Decode(&i)
+    err := decoder.Decode(&ij)
     if ( err != nil ) {
         log.Println(err)
         return
     }
-    log.Println(i)
+
+    decoded_instruction, err := ij.decode()
+    if ( err != nil ) {
+        log.Println(err)
+        return
+    }
 
     // send decoded instruction
-    _i_channel<- Instruction{}
+    _i_channel<- decoded_instruction
 }
 
 
