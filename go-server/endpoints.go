@@ -20,6 +20,7 @@ The json should look something like this:
                 "start": 0.5,
                 "length": 0.5,
                 "duration": 1000,
+                "duration_back": 500,
                 "time_offset": 0,
                 "colors": [
                     {
@@ -29,8 +30,8 @@ The json should look something like this:
                     },
                     {
                         "r": 100,
-                        "g": 125,
-                        "b": 255
+                        "g": 50,
+                        "b": 64
                     }
                 ]
             }
@@ -38,24 +39,25 @@ The json should look something like this:
     }
 */
 type InstructionJSON struct {
-	InstructionType    string          `json:"instruction_type"`
-	Animations         []AnimationJSON `json:"animations"`
+    InstructionType string          `json:"instruction_type"`
+    Animations      []AnimationJSON `json:"animations"`
 }
 
 type AnimationJSON struct {
-	Name       string      `json:"name"`
-	Direction  bool        `json:"direction"`
-	Start      float64     `json:"start"`
-	Length     float64     `json:"length"`
-	Duration   int         `json:"duration"`
-	TimeOffset int         `json:"time_offset"`
-	Colors     []ColorJSON `json:"colors"`
+    Name            string      `json:"name"`
+    Direction       bool        `json:"direction"`
+    Start           float64     `json:"start"`
+    Length          float64     `json:"length"`
+    Duration        int         `json:"duration"`
+    DurationBack    int         `json:"duration_back"`
+    TimeOffset      int         `json:"time_offset"`
+    Colors          []ColorJSON `json:"colors"`
 }
 
 type ColorJSON struct {
-	R  uint8   `json:"r"`
-	G  uint8   `json:"g"`
-	B  uint8   `json:"b"`
+    R   uint8   `json:"r"`
+    G   uint8   `json:"g"`
+    B   uint8   `json:"b"`
 }
 
 
