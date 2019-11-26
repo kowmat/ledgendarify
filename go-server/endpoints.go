@@ -48,6 +48,11 @@ type InstructionJSON struct {
 }
 
 
+var (
+    _i_channel  chan<- Instruction
+)
+
+
 func JSONEndpoint(w http.ResponseWriter, r *http.Request) {
     if ( r.Method != "POST" ) {
         return;
@@ -61,10 +66,17 @@ func JSONEndpoint(w http.ResponseWriter, r *http.Request) {
         return
     }
     log.Println(i)
+
+    // send decoded instruction
+    _i_channel<- Instruction{}
 }
 
 
-func setupServer(port uint16, path string) (error) {
+func setupServer(i chan<- Instruction, port uint16, path string) (error) {
+    // assigning passed instruction channel to the internal one
+    // so the JSONEndpoint can use it
+    _i_channel = i
+
     http.HandleFunc(path, JSONEndpoint)
 
     log.Println("Staring golang server on", port)

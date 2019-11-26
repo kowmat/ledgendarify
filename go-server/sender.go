@@ -16,32 +16,30 @@ const (
 func sender(c chan<- []ledgend.Change, buffer *ledgend.Buffer, fps int64) {
     old_pixels := buffer.GetPixels()
 
-    go func(){
-        for {
-            // applying the queue in the current point of time
-            buffer.ApplyQueue()
+    for {
+        // applying the queue in the current point of time
+        buffer.ApplyQueue()
 
-            // xoring the pixels to get the changes
-            xord, err := ledgend.XORPixels(old_pixels, buffer.GetPixels())
-            if ( err != nil ) {
-                log.Fatal(err)
-            }
-
-            // replacing the old_pixels with the pixels currently in the buffer
-            old_pixels = buffer.GetPixels()
-
-            // sending the changes
-            c<- xord
-
-
-            if ( SHOW_DEBUG ) {
-                log.Printf("wysylanie %d zmian\n", len(xord))
-                log.Println("Clients connected:", ledserv.ClientsConnected())
-            }
-
-
-            // sleeping to achieve the effect of fps
-            time.Sleep(time.Second/time.Duration(fps))
+        // xoring the pixels to get the changes
+        xord, err := ledgend.XORPixels(old_pixels, buffer.GetPixels())
+        if ( err != nil ) {
+            log.Fatal(err)
         }
-    }()
+
+        // replacing the old_pixels with the pixels currently in the buffer
+        old_pixels = buffer.GetPixels()
+
+        // sending the changes
+        if ( len(xord) > 0 ) {
+            if ( SHOW_DEBUG ) {
+                log.Println("Clients connected:", ledserv.ClientsConnected())
+                log.Printf("Sending %d changes\n", len(xord))
+            }
+
+            c<- xord
+        }
+
+        // sleeping to achieve the effect of fps
+        time.Sleep(time.Second/time.Duration(fps))
+    }
 }

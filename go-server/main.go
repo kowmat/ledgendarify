@@ -9,10 +9,16 @@ import (
 
 const (
     BROADCAST_DELAY float64 = 1000
+    JSON_ENDPOINT   string = "/json"
     LEDSERV_PORT    uint16 = 10107  // the standard ledgend port
     PORT            uint16 = 10108
     LEDS            uint16 = 150
     FPS             int64 = 60
+)
+
+
+var (
+    instruction_channel chan Instruction = make(chan Instruction, 100)
 )
 
 
@@ -29,7 +35,9 @@ func main() {
     // creating the empty initial buffer
     buffer := ledgend.GenBuffer(LEDS)
 
-    sender(send, &buffer, FPS)
+    go sender(send, &buffer, FPS)
 
-    setupServer(PORT, "/json")
+    go instructionWatcher(instruction_channel, &buffer)
+
+    setupServer(instruction_channel, PORT, JSON_ENDPOINT)
 }
