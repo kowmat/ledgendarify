@@ -10,7 +10,7 @@ import (
 )
 
 
-func SweepFromJSON(a AnimationJSON) (*ledgend.Animation, error) {
+func SweepFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
     if ( len(a.Colors) < 2 ) {
         return nil, errors.New("Not enough colors in sweep call")
     }
@@ -29,21 +29,24 @@ func SweepFromJSON(a AnimationJSON) (*ledgend.Animation, error) {
         duration, start,
     )
 
-    return &sweep, nil
+    return []ledgend.Animation{sweep}, nil
 }
 
 
 func resolveAnimation(a AnimationJSON) ([]ledgend.Animation, error) {
     log.Println("resolving anim...")
-    var anims []ledgend.Animation
+    var (
+        anims   []ledgend.Animation
+        err     error
+    )
 
     name_string := strings.ToLower(a.Name)
 
     switch(name_string) {
         case "sweep":
-            sweep, err := SweepFromJSON(a)
-            if ( err == nil ) {
-                anims = append(anims, *sweep)
+            anims, err = SweepFromJSON(a)
+            if ( err != nil ) {
+                log.Println(err)
             }
 
 
