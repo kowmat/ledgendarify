@@ -10,23 +10,39 @@ import (
 )
 
 
+func getParams(a AnimationJSON) (time.Time, []time.Duration, []ledgend.Color) {
+    var (
+        cols    []ledgend.Color
+    )
+
+    // calculating times
+    start := time.Now().Add(time.Millisecond*time.Duration(a.TimeOffset))
+    duration := time.Millisecond*time.Duration(a.Duration)
+    duration_back := time.Millisecond*time.Duration(a.DurationBack)
+
+    durations := []time.Duration{duration, duration_back}
+
+    // converting colors to ledgend.Color
+    for _, c := range a.Colors {
+        cols = append(cols, ledgend.Color(c))
+    }
+
+    return start, durations, cols
+}
+
+
 func SweepFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
     if ( len(a.Colors) < 2 ) {
         return nil, errors.New("Not enough colors in sweep call")
     }
 
-    start := time.Now().Add(time.Millisecond*time.Duration(a.TimeOffset))
-    duration := time.Millisecond*time.Duration(a.Duration)
-    col_a := a.Colors[0]
-    col_b := a.Colors[1]
-    col_a_ledgend := ledgend.Color{col_a.R, col_a.G, col_a.B}
-    col_b_ledgend := ledgend.Color{col_b.R, col_b.G, col_b.B}
+    start, durations, cols := getParams(a)
 
     sweep := animations.Sweep(
         a.Direction,
         a.Start, a.Length,
-        col_a_ledgend, col_b_ledgend,
-        duration, start,
+        cols[0], cols[1],
+        durations[0], start,
     )
 
     return []ledgend.Animation{sweep}, nil
@@ -38,24 +54,14 @@ func PulseFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
         return nil, errors.New("Not enough colors in pulse call")
     }
 
-    start := time.Now().Add(time.Millisecond*time.Duration(a.TimeOffset))
-    duration := time.Millisecond*time.Duration(a.Duration)
-    duration_back := time.Millisecond*time.Duration(a.DurationBack)
-    col_a := a.Colors[0]
-    col_b := a.Colors[1]
-    col_c := a.Colors[2]
-    col_d := a.Colors[3]
-    col_a_ledgend := ledgend.Color{col_a.R, col_a.G, col_a.B}
-    col_b_ledgend := ledgend.Color{col_b.R, col_b.G, col_b.B}
-    col_c_ledgend := ledgend.Color{col_c.R, col_c.G, col_c.B}
-    col_d_ledgend := ledgend.Color{col_d.R, col_d.G, col_d.B}
+    start, durations, cols := getParams(a)
 
     pulse_a, pulse_b := animations.Pulse(
         a.Direction,
         a.Start, a.Length,
-        col_a_ledgend, col_b_ledgend,
-        col_c_ledgend, col_d_ledgend,
-        duration, duration_back,
+        cols[0], cols[1],
+        cols[2], cols[3],
+        durations[0], durations[1],
         start,
     )
 
