@@ -9,7 +9,7 @@ const router = express.Router();
 
 const PORT = process.env.PORT || 9669;
 
-const scopes = [
+const scopes = ['streaming',
   'user-read-private', 'user-read-email',
   'user-read-playback-state', 'user-read-currently-playing',
   'user-modify-playback-state'
@@ -19,6 +19,7 @@ const state = 'Ledgend';
 const spotifyApi = new SpotifyWebApi(credentials);
 const authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
 
+// const TOKEN_REFRESH_INTERVAL = 30000;
 const TOKEN_REFRESH_INTERVAL = 1800000;
 
 // accessToken will eventually contain the access token
