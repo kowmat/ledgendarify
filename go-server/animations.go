@@ -89,7 +89,7 @@ func StroboFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
 
 func FmfsFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
     if ( len(a.Colors) < 2 ) {
-        return nil, errors.New("Not enough colors in frommiddlefullsweep call")
+        return nil, errors.New("Not enough colors in fmfs call")
     }
 
     start, durations, cols := getParams(a)
@@ -101,6 +101,26 @@ func FmfsFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
     )
 
     return []ledgend.Animation{fmfs_a, fmfs_b}, nil
+}
+
+
+func GradientOverTimeFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
+    if ( len(a.Colors) < 4 ) {
+        return nil, errors.New("Not enough colors in gradient call")
+    }
+
+    start, durations, cols := getParams(a)
+
+    anims := animations.GradientOverTime(
+        a.Direction,
+        a.Start, a.Length,
+        cols[0], cols[1],
+        cols[2], cols[3],
+        durations[0], durations[1],
+        start,
+    )
+
+    return anims, nil
 }
 
 
@@ -133,6 +153,12 @@ func resolveAnimation(a AnimationJSON) ([]ledgend.Animation, error) {
 
         case "fmfs":
             anims, err = FmfsFromJSON(a)
+            if ( err != nil ) {
+                return nil, err
+            }
+
+        case "gradient":
+            anims, err = GradientOverTimeFromJSON(a)
             if ( err != nil ) {
                 return nil, err
             }
