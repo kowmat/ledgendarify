@@ -9,45 +9,106 @@ function checkDataType(data){
   }
 }
 
-var already = false;
+let already = false;
 let prev_state;
-
 function stateToTrackObject(state){
+
   let info = new Object;
-  info.duration = state.duration;
-  info.isPaused = state.paused;
+  if(state == null){
+    info.deviceChanged = true;
+    return info;
+  }
+  info.deviceChanged = false; //v
+  info.duration = state.duration; //
+  info.is_paused = state.paused; //v
   info.position = state.position;
-  info.repeat_mode = state.repeat_mode;
-  info.restrictions = state.restrictions;
-  info.shuffle = state.shuffle;
+  info.repeat_mode = state.repeat_mode; //v
+  info.restrictions = state.restrictions; //v
+  info.shuffle = state.shuffle; //v
   info.timestamp = state.timestamp;
-  info.currentTrack = {id: state.track_window.current_track.id,
+  info.current_track = {id: state.track_window.current_track.id, //v
                       name: state.track_window.current_track.name,
                       duration: state.track_window.current_track.duration_ms
                       };
-  info.nextTracks = [];
-  info.nextTracks[0] = {id: state.track_window.next_tracks[0].id,
+  info.next_tracks = []; //v
+  info.next_tracks[0] = {id: state.track_window.next_tracks[0].id,
                       name: state.track_window.next_tracks[0].name,
                       duration: state.track_window.next_tracks[0].duration_ms
                       };
-  info.nextTracks[1] = {id: state.track_window.next_tracks[1].id,
+  info.next_tracks[1] = {id: state.track_window.next_tracks[1].id,
                       name: state.track_window.next_tracks[1].name,
                       duration: state.track_window.next_tracks[1].duration_ms
                       };
   return info;
 }
 
+function diffTrackObjects(object_new, object_old){
+  if(!Object.is(object_new, object_old)){
+    return "NOTHING";
+  }
+  console.log(object_new, object_old)
+  if(object_new.deviceChanged){
+    return "DEVICE INACTIVE";
+  }
+  else if(object_new.current_track.id != object_old.current_track.id){
+    if(object_new.current_track.id == object_old.next_tracks[0].id){
+      return "SONG SKIP";
+    }
+    else {
+      return "NEW SONG";
+    }
+  }
+  else if(object_new.is_paused != object_old.is_paused){
+    if (object_new.is_paused){
+      return "PAUSE";
+    }
+    else {
+      return "PLAY";
+    }
+  }
+  else if(object_new.shuffle != object_old.shuffle){
+    if (object_new.shuffle){
+      return "SHUFFLE ON";
+    }
+    else {
+      return "SHUFFLE OFF";
+    }
+  }
+  else if(object_new.repeat_mode != object_old.repeat_mode){
+    return "REPEAT MODE "+object_new.repeat_mode;
+  }
+  else if(object_new.next_tracks[0].id != object_old.next_tracks[0].id ||
+          object_new.next_tracks[1].id != object_old.next_tracks[1].id){
+    return "QUEUE CHANGED";
+  }
+  else if(object_new.duration != object_old.duration){
+    return "DURATION CHANGED";
+  }
+  // else if(object_new.restrictions != object_old.restrictions){
+  //   return "RESTRICTIONS CHANGED";
+  // }
+  else {
+    return "POSITION CHANGED";
+  }
+}
+
+
 
 function changeDetails(state, prev_state){
   let current_state = stateToTrackObject(state);
   let previous_state = stateToTrackObject(prev_state);
-  console.log(current_state);
+  let change = diffTrackObjects(current_state, previous_state);
+  return [change, current_state];
 }
 
 
 function onPlaybackChange(state){
+  if(prev_state == null){
+    prev_state = state;
+  }
+  let change = changeDetails(state, prev_state);
   prev_state = state;
-  changeDetails(state, prev_state);
+  console.log(change);
 }
 
 function addScript(src, callback, accessToken){
@@ -59,9 +120,10 @@ function addScript(src, callback, accessToken){
 
 function initPlayer(accessToken){
   window.onSpotifyWebPlaybackSDKReady = () => {
-    var player = new Spotify.Player({
+    let player = new Spotify.Player({
       name: 'Ledgendary',
-      getOAuthToken: cb => { cb(accessToken); }
+      getOAuthToken: cb => { cb(accessToken); },
+      volume: 0.5
     });
 
     player.addListener('initialization_error', ({ message }) => { console.error(message); });
