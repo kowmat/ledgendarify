@@ -18,7 +18,7 @@ func getParams(a AnimationJSON) (time.Time, []time.Duration, []ledgend.Color) {
     // calculating times
     start := time.Now().Add(time.Millisecond*time.Duration(a.TimeOffset))
     duration := time.Millisecond*time.Duration(a.Duration)
-    duration_back := time.Millisecond*time.Duration(a.DurationBack)
+    duration_back := time.Millisecond*time.Duration(a.DurationTwo)
 
     durations := []time.Duration{duration, duration_back}
 
@@ -69,8 +69,42 @@ func PulseFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
 }
 
 
+func StroboFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
+    if ( len(a.Colors) < 4 ) {
+        return nil, errors.New("Not enough colors in strobo call")
+    }
+
+    start, durations, cols := getParams(a)
+
+    anims := animations.Strobo(
+        cols[0], cols[1],
+        cols[2], cols[3],
+        durations[0], durations[1],
+        start,
+    )
+
+    return anims, nil
+}
+
+
+func FmfsFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
+    if ( len(a.Colors) < 2 ) {
+        return nil, errors.New("Not enough colors in frommiddlefullsweep call")
+    }
+
+    start, durations, cols := getParams(a)
+
+    fmfs_a, fmfs_b := animations.FromMiddleFullSweep(
+        cols[0], cols[1],
+        durations[0],
+        start,
+    )
+
+    return []ledgend.Animation{fmfs_a, fmfs_b}, nil
+}
+
+
 func resolveAnimation(a AnimationJSON) ([]ledgend.Animation, error) {
-    log.Println("resolving anim...")
     var (
         anims   []ledgend.Animation
         err     error
@@ -87,6 +121,18 @@ func resolveAnimation(a AnimationJSON) ([]ledgend.Animation, error) {
 
         case "pulse":
             anims, err = PulseFromJSON(a)
+            if ( err != nil ) {
+                return nil, err
+            }
+
+        case "strobo":
+            anims, err = StroboFromJSON(a)
+            if ( err != nil ) {
+                return nil, err
+            }
+
+        case "fmfs":
+            anims, err = FmfsFromJSON(a)
             if ( err != nil ) {
                 return nil, err
             }

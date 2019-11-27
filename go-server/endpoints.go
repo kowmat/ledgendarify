@@ -20,7 +20,7 @@ The json should look something like this:
                 "start": 0.5,
                 "length": 0.5,
                 "duration": 1000,
-                "duration_back": 500,
+                "duration_two": 500,
                 "time_offset": 0,
                 "colors": [
                     {
@@ -49,7 +49,7 @@ type AnimationJSON struct {
     Start           float64     `json:"start"`
     Length          float64     `json:"length"`
     Duration        int         `json:"duration"`
-    DurationBack    int         `json:"duration_back"`
+    DurationTwo     int         `json:"duration_two"`
     TimeOffset      int         `json:"time_offset"`
     Colors          []ColorJSON `json:"colors"`
 }
