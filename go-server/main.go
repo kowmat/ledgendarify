@@ -33,7 +33,7 @@ func main() {
     ledserv.Broadcast(BROADCAST_DELAY)
 
     // creating the empty initial buffer
-    buffer := ledgend.GenBuffer(LEDS)
+    buffer := ledgend.GenSyncBuffer(LEDS)
 
     go sender(send, &buffer, FPS)
 

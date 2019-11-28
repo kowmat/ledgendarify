@@ -13,7 +13,7 @@ const (
 )
 
 
-func sender(c chan<- []ledgend.Change, buffer *ledgend.Buffer, fps int64) {
+func sender(c chan<- []ledgend.Change, buffer *ledgend.SyncBuffer, fps int64) {
     old_pixels := buffer.GetPixels()
 
     for {

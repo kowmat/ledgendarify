@@ -20,7 +20,7 @@ const (
 )
 
 
-func (i *Instruction) interpret(b *ledgend.Buffer) {
+func (i *Instruction) interpret(b *ledgend.SyncBuffer) {
 
     switch(i.instruction_type) {
         case CLEAR:
@@ -32,7 +32,7 @@ func (i *Instruction) interpret(b *ledgend.Buffer) {
 }
 
 
-func instructionWatcher(c <-chan Instruction, b *ledgend.Buffer) {
+func instructionWatcher(c <-chan Instruction, b *ledgend.SyncBuffer) {
     for {
         instruction := <-c
         instruction.interpret(b)
