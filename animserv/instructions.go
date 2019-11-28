@@ -1,4 +1,4 @@
-package main
+package animserv
 
 import (
     "github.com/franeklubi/ledgend"
@@ -32,7 +32,7 @@ func (i *Instruction) interpret(b *ledgend.SyncBuffer) {
 }
 
 
-func instructionWatcher(c <-chan Instruction, b *ledgend.SyncBuffer) {
+func InstructionWatcher(c <-chan Instruction, b *ledgend.SyncBuffer) {
     for {
         instruction := <-c
         instruction.interpret(b)

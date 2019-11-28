@@ -1,4 +1,4 @@
-package main
+package animserv
 
 import (
     "encoding/json"
@@ -116,7 +116,7 @@ func JSONEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func setupServer(i chan<- Instruction, port uint16, path string) (error) {
+func SetupServer(i chan<- Instruction, port uint16, path string) (error) {
     // assigning passed instruction channel to the internal one
     // so the JSONEndpoint can use it
     _i_channel = i

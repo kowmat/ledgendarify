@@ -3,6 +3,7 @@ package main
 import (
     "github.com/franeklubi/ledgend"
     "github.com/franeklubi/ledserv"
+    . "./animserv"
     "log"
 )
 
@@ -35,9 +36,9 @@ func main() {
     // creating the empty initial buffer
     buffer := ledgend.GenSyncBuffer(LEDS)
 
-    go sender(send, &buffer, FPS)
+    go Sender(send, &buffer, FPS)
 
-    go instructionWatcher(instruction_channel, &buffer)
+    go InstructionWatcher(instruction_channel, &buffer)
 
-    setupServer(instruction_channel, PORT, JSON_ENDPOINT)
+    SetupServer(instruction_channel, PORT, JSON_ENDPOINT)
 }

@@ -1,4 +1,4 @@
-package main
+package animserv
 
 import (
     "github.com/franeklubi/ledgend"
@@ -13,7 +13,7 @@ const (
 )
 
 
-func sender(c chan<- []ledgend.Change, buffer *ledgend.SyncBuffer, fps int64) {
+func Sender(c chan<- []ledgend.Change, buffer *ledgend.SyncBuffer, fps int64) {
     old_pixels := buffer.GetPixels()
 
     for {

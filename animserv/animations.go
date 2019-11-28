@@ -1,4 +1,4 @@
-package main
+package animserv
 
 import (
     "github.com/franeklubi/ledgend/animations"
