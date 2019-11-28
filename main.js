@@ -26,6 +26,41 @@ const TOKEN_REFRESH_INTERVAL = 1800000;
 let accessToken;
 let already_authorized = false;
 
+let player_state = {
+  current_track: {
+    id: null,
+    name: null,
+    duration: null,
+  },
+  state: {
+    device_active: false,
+    position: null,
+    is_paused: null,
+    repeat_mode: null,
+    shuffle: null,
+    time_set: null
+  }
+
+}
+
+let tracks_analysis = {
+  current_track: {
+    id: null,
+    analysis: null,
+    features: null
+  },
+  next_track_1: {
+    id: null,
+    analysis: null,
+    features: null
+  },
+  next_track_2: {
+    id: null,
+    analysis: null,
+    features: null
+  }
+}
+
 
 app.get('/auth', (req, res) => {
     res.sendFile(path.join(__dirname + '/static/auth/index.html'));
@@ -135,6 +170,122 @@ function checkDataType(data) {
   }
 }
 
+function fetchSingleAnalysis(track_id){
+  return new Promise(function(resolve, reject){
+    let analysis = spotifyApi.getAudioAnalysisForTrack(track_id)
+    .then(function(data) {
+      if(data.statusCode == 200){
+        return data.body;
+      }
+      else{
+        return null;
+      }
+    }, function(err) {
+      done(err);
+    });
+    let track_features = spotifyApi.getAudioFeaturesForTrack(track_id)
+    .then(function(data2) {
+      if(data2.statusCode == 200){
+        return data2.body;
+      }
+      else{
+        return null;
+      }
+    }, function(err) {
+      done(err);
+    });
+    Promise.all([analysis, track_features])
+    .then(function(values){
+      let return_object =
+      {id: track_id,
+       analysis: values[0],
+       features: values[1]
+      };
+      // console.log(return_object);
+      resolve(return_object);
+    });
+  });
+}
+
+function fetchAnalysis(current_track_id, next_track_1_id, next_track_2_id, eventType="NEW SONG"){
+  switch(eventType){
+    case "NEW SONG":
+    case "SHUFFLE ON":
+    case "SHUFFLE OFF":
+    case "REPEAT MODE 0":
+    case "PLAY START":
+      let ct_promise = fetchSingleAnalysis(current_track_id).then(function(data){
+        tracks_analysis.current_track = data;
+        console.log("CUR:", tracks_analysis.current_track.id);
+        let nt1_promise = fetchSingleAnalysis(next_track_1_id).then(function(data){
+          tracks_analysis.next_track_1 = data;
+          console.log("N1:", tracks_analysis.next_track_1.id);
+          let nt2_promise = fetchSingleAnalysis(next_track_2_id).then(function(data){
+            tracks_analysis.next_track_2 = data;
+            console.log("N2:", tracks_analysis.next_track_2.id);
+          });
+        });
+      });
+      break;
+    case "SONG SKIP":
+      if(tracks_analysis.next_track_1.id == current_track_id){
+        tracks_analysis.current_track = tracks_analysis.next_track_1;
+        tracks_analysis.next_track_1= tracks_analysis.next_track_2;
+        let nt2_promise = fetchSingleAnalysis(next_track_2_id).then(function(data){
+          tracks_analysis.next_track_2 = data;
+          console.log("CUR:", tracks_analysis.current_track.id);
+          console.log("N1:", tracks_analysis.next_track_1.id);
+          console.log("N2:", tracks_analysis.next_track_2.id);
+        });
+      }
+      break;
+    case "QUEUE CHANGED":
+      if(tracks_analysis.next_track_2.id == next_track_1_id
+        && tracks_analysis.next_track_1.id == next_track_2_id)
+      {
+        let tmp = tracks_analysis.next_track_1;
+        tracks_analysis.next_track_1 = tracks_analysis.next_track_2;
+        tracks_analysis.next_track_2 = tmp;
+        console.log("QUEUE SWAP!");
+        console.log("CUR:", tracks_analysis.current_track.id);
+        console.log("N1:", tracks_analysis.next_track_1.id);
+        console.log("N2:", tracks_analysis.next_track_2.id);
+      }
+      else if(tracks_analysis.next_track_2.id == next_track_1_id){
+        tracks_analysis.next_track_1 = tracks_analysis.next_track_2;
+        let nt2_promise = fetchSingleAnalysis(next_track_2_id).then(function(data){
+          tracks_analysis.next_track_2 = data;
+          console.log("1st = 2nd!");
+          console.log("CUR:", tracks_analysis.current_track.id);
+          console.log("N1:", tracks_analysis.next_track_1.id);
+          console.log("N2:", tracks_analysis.next_track_2.id);
+        });
+      }
+      else if(tracks_analysis.next_track_1.id == next_track_1_id){
+        let nt2_promise = fetchSingleAnalysis(next_track_2_id).then(function(data){
+          tracks_analysis.next_track_2 = data;
+          console.log("NEW 2nd!");
+          console.log("CUR:", tracks_analysis.current_track.id);
+          console.log("N1:", tracks_analysis.next_track_1.id);
+          console.log("N2:", tracks_analysis.next_track_2.id);
+        });
+      }
+      else{
+        let nt1_promise = fetchSingleAnalysis(next_track_1_id).then(function(data){
+          tracks_analysis.next_track_1 = data;
+          let nt2_promise = fetchSingleAnalysis(next_track_2_id).then(function(data){
+            tracks_analysis.next_track_2 = data;
+            console.log("BRAND NEW!");
+            console.log("CUR:", tracks_analysis.current_track.id);
+            console.log("N1:", tracks_analysis.next_track_1.id);
+            console.log("N2:", tracks_analysis.next_track_2.id);
+          });
+        });
+      }
+      break;
+  }
+}
+
 
 ws_server.on('connection', (ws) => {
   console.log('Połączono o: ' + new Date());
@@ -164,6 +315,33 @@ ws_server.on('connection', (ws) => {
         broadcast(JSON.stringify(auth_url));
 
         break;
-    }
+      case "change":
+        let reason = message_and_type["value"][0];
+        let change = message_and_type["value"][1];
+        if(!change.deviceChanged){
+          player_state.state.position = change.position;
+          player_state.state.is_paused = change.is_paused;
+          player_state.state.repeat_mode = change.repeat_mode;
+          player_state.state.shuffle = change.shuffle;
+          player_state.state.time_set = change.timestamp;
+          player_state.current_track.id = change.current_track.id;
+          player_state.current_track.name = change.current_track.name;
+          player_state.current_track.duration = change.current_track.duration;
+          console.log("EVENT");
+          if(!player_state.device_active){
+            if(reason == "PLAY"){
+              reason = "PLAY START";
+              player_state.device_active = true;
+            }
+          }
+          fetchAnalysis(
+            change.current_track.id,
+            change.next_tracks[0].id,
+            change.next_tracks[1].id,
+            reason
+          );
+        }
+      player_state.state.device_active = false;
+      }
   });
 });

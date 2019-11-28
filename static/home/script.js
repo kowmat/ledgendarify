@@ -31,19 +31,23 @@ function stateToTrackObject(state){
                       duration: state.track_window.current_track.duration_ms
                       };
   info.next_tracks = []; //v
-  info.next_tracks[0] = {id: state.track_window.next_tracks[0].id,
-                      name: state.track_window.next_tracks[0].name,
-                      duration: state.track_window.next_tracks[0].duration_ms
-                      };
-  info.next_tracks[1] = {id: state.track_window.next_tracks[1].id,
-                      name: state.track_window.next_tracks[1].name,
-                      duration: state.track_window.next_tracks[1].duration_ms
-                      };
+  if(typeof state.track_window.next_tracks[0].id !== 'undefined'){
+    info.next_tracks[0] = {id: state.track_window.next_tracks[0].id,
+      name: state.track_window.next_tracks[0].name,
+      duration: state.track_window.next_tracks[0].duration_ms
+    };
+  }
+  if(typeof state.track_window.next_tracks[1].id !== 'undefined'){
+    info.next_tracks[1] = {id: state.track_window.next_tracks[1].id,
+                        name: state.track_window.next_tracks[1].name,
+                        duration: state.track_window.next_tracks[1].duration_ms
+                        };
+  }
   return info;
 }
 
 function diffTrackObjects(object_new, object_old){
-  if(!Object.is(object_new, object_old)){
+  if(Object.is(object_new, object_old)){
     return "NOTHING";
   }
   console.log(object_new, object_old)
@@ -103,12 +107,14 @@ function changeDetails(state, prev_state){
 
 
 function onPlaybackChange(state){
+  console.log(state);
   if(prev_state == null){
     prev_state = state;
   }
   let change = changeDetails(state, prev_state);
   prev_state = state;
   console.log(change);
+  ws.send(JSON.stringify({"type": "change", "value": change}));
 }
 
 function addScript(src, callback, accessToken){
