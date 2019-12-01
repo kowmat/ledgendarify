@@ -47,7 +47,7 @@ let tracks_analysis = {
   current_track: {
     id: null,
     analysis: null,
-    features: null
+    features: null,
   },
   next_track_1: {
     id: null,
@@ -170,12 +170,131 @@ function checkDataType(data) {
   }
 }
 
+function mapVal(x, in_min, in_max, out_min, out_max){
+  let value = (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+  if(value>out_max){
+    return out_max;
+  }
+  else if(value<out_min){
+    return out_min
+  }
+  else{
+    return value;
+  }
+}
+
+
+function getRandom(min, max, round=false) {
+  if(round == false){
+    return Math.floor(Math.random() * (max - min) + min);
+  }
+  else{
+    return roundToTwo(Math.random() * (max - min) + min);
+  }
+}
+
+
+function roundToTwo(num) {
+  return +(Math.round(num + "e+2")  + "e-2");
+}
+
+function generateColorsHue(colors_list, happy){
+  let color;
+  if(happy){
+    color = roundToTwo(getRandom(0, 5, false)/10);
+  }
+  else{
+    color = roundToTwo(getRandom(5, 10, false)/10);
+  }
+  if(colors_list.includes(color)){
+    return generateColorsHue(colors_list, happy);
+  }
+  else{
+    colors_list.push(color);
+    return color;
+  }
+}
+
+function limit(x, min, max){
+  if(x < min){
+    return min;
+  }
+  else if(x>max){
+    return max;
+  }
+  return x;
+}
+
+function generateColors(features, num_of_colors=4){
+  let valueRangeBottom = roundToTwo(mapVal(features.tempo, 100, 150, 0.5, 1));
+  let colors_hsv = [];
+  let colors_h = [];
+  let colors_s = [];
+  let offset = roundToTwo(Math.random()/10);
+  let happy_colors_chance = 0.5;
+  if(features.valence>0.65){
+    happy_colors_chance = happy_colors_chance + features.valence/3;
+  }
+  else{
+    happy_colors_chance = happy_colors_chance - ((1-features.valence)/3);
+  }
+  happy_colors_chance = roundToTwo(happy_colors_chance);
+  for(let i=0; i<num_of_colors; i++){
+    let happy = Math.random()<happy_colors_chance;
+    colors_h[i] = generateColorsHue(colors_h, happy);
+  }
+  for(let i=0; i<num_of_colors; i++){
+    colors_h[i] = roundToTwo(colors_h[i] + offset), 0, 1;
+    colors_s[i] = getRandom(valueRangeBottom, 1, true);
+    colors_hsv.push([colors_h[i], colors_s[i], 1]);
+  }
+  return colors_hsv;
+}
+
+
+function songClimate(features){
+  //add colors and some randomness
+  // happy colors: hue<180. sad colors: hue>180
+  let song_colors = generateColors(features, 5);
+
+  let animations = ["sweep", "pulse", "fmfs", "GradientOverTime"];
+  let strobo_present = false;
+  let energetic = features.danceability + features.energy;
+  if(energetic > 1.25){
+    animations.push("police");
+    if(features.tempo>125 &&
+      energetic > 1.38 &&
+      features.valence < 0.67){
+      strobo_present = true;
+    }
+    if(features.tempo>115){
+      animations.push("pingpong");
+    }
+    if(features.tempo>125 && features.valence < 0.6){
+      animations.push("randomflashes");
+    }
+  }
+  console.log(song_colors, "\n", animations, "\n", strobo_present);
+}
+
+function generateAnims(track){
+
+}
+
 function fetchSingleAnalysis(track_id){
   return new Promise(function(resolve, reject){
     let analysis = spotifyApi.getAudioAnalysisForTrack(track_id)
     .then(function(data) {
       if(data.statusCode == 200){
-        return data.body;
+        let = return_value = data.body;
+        delete return_value.track.codestring;
+        delete return_value.track.code_version;
+        delete return_value.track.echoprintstring;
+        delete return_value.track.echoprint_version;
+        delete return_value.track.synchstring;
+        delete return_value.track.synch_version;
+        delete return_value.track.rhythmstring;
+        delete return_value.track.rhythm_version;
       }
       else{
         return null;
@@ -201,7 +320,7 @@ function fetchSingleAnalysis(track_id){
        analysis: values[0],
        features: values[1]
       };
-      // console.log(return_object);
+      // console.log(return_object.features);
       resolve(return_object);
     });
   });
@@ -216,13 +335,15 @@ function fetchAnalysis(current_track_id, next_track_1_id, next_track_2_id, event
     case "PLAY START":
       let ct_promise = fetchSingleAnalysis(current_track_id).then(function(data){
         tracks_analysis.current_track = data;
-        console.log("CUR:", tracks_analysis.current_track.id);
+        console.log(tracks_analysis.current_track.features);
+        songClimate(tracks_analysis.current_track.features);
+        // console.log("CUR:", tracks_analysis.current_track.id);
         let nt1_promise = fetchSingleAnalysis(next_track_1_id).then(function(data){
           tracks_analysis.next_track_1 = data;
-          console.log("N1:", tracks_analysis.next_track_1.id);
+          // console.log("N1:", tracks_analysis.next_track_1.id);
           let nt2_promise = fetchSingleAnalysis(next_track_2_id).then(function(data){
             tracks_analysis.next_track_2 = data;
-            console.log("N2:", tracks_analysis.next_track_2.id);
+            // console.log("N2:", tracks_analysis.next_track_2.id);
           });
         });
       });
@@ -231,11 +352,13 @@ function fetchAnalysis(current_track_id, next_track_1_id, next_track_2_id, event
       if(tracks_analysis.next_track_1.id == current_track_id){
         tracks_analysis.current_track = tracks_analysis.next_track_1;
         tracks_analysis.next_track_1= tracks_analysis.next_track_2;
+        console.log(tracks_analysis.current_track.features);
+        console.log(songClimate(tracks_analysis.current_track.features));
         let nt2_promise = fetchSingleAnalysis(next_track_2_id).then(function(data){
           tracks_analysis.next_track_2 = data;
-          console.log("CUR:", tracks_analysis.current_track.id);
-          console.log("N1:", tracks_analysis.next_track_1.id);
-          console.log("N2:", tracks_analysis.next_track_2.id);
+          // console.log("CUR:", tracks_analysis.current_track.id);
+          // console.log("N1:", tracks_analysis.next_track_1.id);
+          // console.log("N2:", tracks_analysis.next_track_2.id);
         });
       }
       break;
@@ -246,28 +369,28 @@ function fetchAnalysis(current_track_id, next_track_1_id, next_track_2_id, event
         let tmp = tracks_analysis.next_track_1;
         tracks_analysis.next_track_1 = tracks_analysis.next_track_2;
         tracks_analysis.next_track_2 = tmp;
-        console.log("QUEUE SWAP!");
-        console.log("CUR:", tracks_analysis.current_track.id);
-        console.log("N1:", tracks_analysis.next_track_1.id);
-        console.log("N2:", tracks_analysis.next_track_2.id);
+        // console.log("QUEUE SWAP!");
+        // console.log("CUR:", tracks_analysis.current_track.id);
+        // console.log("N1:", tracks_analysis.next_track_1.id);
+        // console.log("N2:", tracks_analysis.next_track_2.id);
       }
       else if(tracks_analysis.next_track_2.id == next_track_1_id){
         tracks_analysis.next_track_1 = tracks_analysis.next_track_2;
         let nt2_promise = fetchSingleAnalysis(next_track_2_id).then(function(data){
           tracks_analysis.next_track_2 = data;
-          console.log("1st = 2nd!");
-          console.log("CUR:", tracks_analysis.current_track.id);
-          console.log("N1:", tracks_analysis.next_track_1.id);
-          console.log("N2:", tracks_analysis.next_track_2.id);
+          // console.log("1st = 2nd!");
+          // console.log("CUR:", tracks_analysis.current_track.id);
+          // console.log("N1:", tracks_analysis.next_track_1.id);
+          // console.log("N2:", tracks_analysis.next_track_2.id);
         });
       }
       else if(tracks_analysis.next_track_1.id == next_track_1_id){
         let nt2_promise = fetchSingleAnalysis(next_track_2_id).then(function(data){
           tracks_analysis.next_track_2 = data;
-          console.log("NEW 2nd!");
-          console.log("CUR:", tracks_analysis.current_track.id);
-          console.log("N1:", tracks_analysis.next_track_1.id);
-          console.log("N2:", tracks_analysis.next_track_2.id);
+          // console.log("NEW 2nd!");
+          // console.log("CUR:", tracks_analysis.current_track.id);
+          // console.log("N1:", tracks_analysis.next_track_1.id);
+          // console.log("N2:", tracks_analysis.next_track_2.id);
         });
       }
       else{
@@ -275,10 +398,10 @@ function fetchAnalysis(current_track_id, next_track_1_id, next_track_2_id, event
           tracks_analysis.next_track_1 = data;
           let nt2_promise = fetchSingleAnalysis(next_track_2_id).then(function(data){
             tracks_analysis.next_track_2 = data;
-            console.log("BRAND NEW!");
-            console.log("CUR:", tracks_analysis.current_track.id);
-            console.log("N1:", tracks_analysis.next_track_1.id);
-            console.log("N2:", tracks_analysis.next_track_2.id);
+            // console.log("BRAND NEW!");
+            // console.log("CUR:", tracks_analysis.current_track.id);
+            // console.log("N1:", tracks_analysis.next_track_1.id);
+            // console.log("N2:", tracks_analysis.next_track_2.id);
           });
         });
       }
@@ -327,7 +450,7 @@ ws_server.on('connection', (ws) => {
           player_state.current_track.id = change.current_track.id;
           player_state.current_track.name = change.current_track.name;
           player_state.current_track.duration = change.current_track.duration;
-          console.log("EVENT");
+          console.log(reason);
           if(!player_state.device_active){
             if(reason == "PLAY"){
               reason = "PLAY START";
