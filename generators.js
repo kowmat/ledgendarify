@@ -1,4 +1,19 @@
 
+const ANIMS = "anims"
+const CLEAR = "clear"
+
+
+function genSendJSON(
+    instruction_type,   // use ANIMS or CLEAR
+    arr_animations      // animations generated with this module
+) {
+    return {
+        "instruction_type": instruction_type,
+        "animations": arr_animations
+    }
+}
+
+
 function genColor(r, g, b) {
     return {
         "r": r,
@@ -139,6 +154,9 @@ function genPing(
 
 
 module.exports = {
+    ANIMS: ANIMS,
+    CLEAR: CLEAR,
+    genSendJSON: genSendJSON,
     genColor: genColor,
     genAnimation: genAnimation,
     genSweep: genSweep,
