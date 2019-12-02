@@ -22,6 +22,8 @@ const authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
 // const TOKEN_REFRESH_INTERVAL = 30000;
 const TOKEN_REFRESH_INTERVAL = 1800000;
 
+const SECTION_DURATION_CONFIDENCE = 0.26;
+
 // accessToken will eventually contain the access token
 let accessToken;
 let already_authorized = false;
@@ -251,6 +253,69 @@ function generateColors(features, num_of_colors=4){
   return colors_hsv;
 }
 
+function secondsToMinutes(seconds){
+  let minutes = Math.floor(seconds/60);
+  let _seconds = Math.floor(seconds%60);
+  return [minutes, _seconds];
+}
+
+function describeSections(ana){
+  let end_of_fade_in = ana.track.end_of_fade_in;
+  let start_of_fade_out = ana.track.start_of_fade_out;
+  let duration = ana.track.duration;
+  let sections = ana.sections;
+
+
+  console.log(sections);
+  let i = 1;
+
+  for(let i = 1; i<sections.length-1; i++){
+    if(sections[i].confidence < SECTION_DURATION_CONFIDENCE){
+      let updated_section;
+      let splice_index;
+      if(sections[i-1].confidence > sections[i+1]){
+        updated_section = sections[i+1];
+        updated_section.start = sections[i].start;
+      }
+      else{
+        updated_section = sections[i-1];
+      }
+      updated_section.duration = updated_section.duration + sections[i].duration;
+      // updated_section.confidence = sections[i].confidence;
+      updated_section.loudness = (updated_section.loudness + sections[i].loudness)/2;
+      updated_section.tempo = (updated_section.tempo + sections[i].tempo)/2;
+      if(updated_section.key_confidence < sections[i].key_confidence){
+        updated_section.key_confidence = sections[i].key_confidence;
+        updated_section.key = sections[i].key;
+      }
+      if(updated_section.mode_confidence < sections[i].mode_confidence){
+        updated_section.mode_confidence = sections[i].mode_confidence;
+        updated_section.mode = sections[i].mode;
+      }
+      if(updated_section.time_signature_confidence < sections[i].time_signature_confidence){
+        updated_section.time_signature_confidence = sections[i].time_signature_confidence;
+        updated_section.time_signature = sections[i].time_signature;
+      }
+      sections.splice(i, 1);
+    }
+  }
+  for(let i = 0; i<sections.length; i++){
+    if(i == 0){
+      sections[i].duration = sections[i].duration - 1;
+    }
+    else {
+      sections[i].start = sections[i].start - 1;
+    }
+    let start_m = secondsToMinutes(sections[i].start);
+    sections[i].start_m = start_m;
+    sections[i].end_m = secondsToMinutes(sections[i].start+sections[i].duration);
+  }
+  console.log("\n\nPO:\n");
+  console.log(sections);
+
+
+}
+
 
 function songClimate(features){
   //add colors and some randomness
@@ -278,7 +343,8 @@ function songClimate(features){
 }
 
 function generateAnims(track){
-
+  songClimate(track.features);
+  describeSections(track.analysis);
 }
 
 function fetchSingleAnalysis(track_id){
@@ -286,7 +352,7 @@ function fetchSingleAnalysis(track_id){
     let analysis = spotifyApi.getAudioAnalysisForTrack(track_id)
     .then(function(data) {
       if(data.statusCode == 200){
-        let = return_value = data.body;
+        let return_value = data.body;
         delete return_value.track.codestring;
         delete return_value.track.code_version;
         delete return_value.track.echoprintstring;
@@ -295,6 +361,7 @@ function fetchSingleAnalysis(track_id){
         delete return_value.track.synch_version;
         delete return_value.track.rhythmstring;
         delete return_value.track.rhythm_version;
+        return return_value;
       }
       else{
         return null;
@@ -335,8 +402,7 @@ function fetchAnalysis(current_track_id, next_track_1_id, next_track_2_id, event
     case "PLAY START":
       let ct_promise = fetchSingleAnalysis(current_track_id).then(function(data){
         tracks_analysis.current_track = data;
-        console.log(tracks_analysis.current_track.features);
-        songClimate(tracks_analysis.current_track.features);
+        generateAnims(data);
         // console.log("CUR:", tracks_analysis.current_track.id);
         let nt1_promise = fetchSingleAnalysis(next_track_1_id).then(function(data){
           tracks_analysis.next_track_1 = data;
@@ -352,8 +418,7 @@ function fetchAnalysis(current_track_id, next_track_1_id, next_track_2_id, event
       if(tracks_analysis.next_track_1.id == current_track_id){
         tracks_analysis.current_track = tracks_analysis.next_track_1;
         tracks_analysis.next_track_1= tracks_analysis.next_track_2;
-        console.log(tracks_analysis.current_track.features);
-        console.log(songClimate(tracks_analysis.current_track.features));
+        generateAnims(tracks_analysis.current_track);
         let nt2_promise = fetchSingleAnalysis(next_track_2_id).then(function(data){
           tracks_analysis.next_track_2 = data;
           // console.log("CUR:", tracks_analysis.current_track.id);
