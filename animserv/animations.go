@@ -181,6 +181,58 @@ func PoliceFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
 }
 
 
+func PingFromJSON(a AnimationJSON) ([]ledgend.Animation, error) {
+    if ( len(a.Colors) < 4 ) {
+        return nil, errors.New("Not enough colors in ping call")
+    }
+
+    start, durations, cols := getParams(a)
+
+    passes := int(durations[0].Milliseconds()/durations[1].Milliseconds())
+
+    var anims []ledgend.Animation
+
+    var start_pos float64
+    if ( a.Direction ) {
+        start_pos = 0
+    } else {
+        start_pos = 1
+    }
+
+    ping := animations.Sweep(
+        a.Direction, start_pos, a.Length,
+        cols[0], cols[1],
+        time.Millisecond,
+        start,
+    )
+    background := animations.Sweep(
+        a.Direction, start_pos, 1,
+        cols[2], cols[3],
+        time.Millisecond,
+        start,
+    )
+    anims = append(anims, ping, background)
+
+    for x := 1; x <= passes; x++ {
+        background.Start = background.Start.Add(durations[1])
+
+        g := (float64(x)/float64(passes))*(1-a.Length)
+        ping.Start = ping.Start.Add(durations[1])
+
+        if ( a.Direction ) {
+            ping.Start_pos = g
+        } else {
+            ping.Start_pos = 1-g
+        }
+        ping.Length = a.Length+g
+
+        anims = append(anims, background, ping)
+    }
+
+    return anims, nil
+}
+
+
 func resolveAnimation(a AnimationJSON) ([]ledgend.Animation, error) {
     var (
         anims   []ledgend.Animation
@@ -222,6 +274,12 @@ func resolveAnimation(a AnimationJSON) ([]ledgend.Animation, error) {
 
         case "police":
             anims, err = PoliceFromJSON(a)
+            if ( err != nil ) {
+                return nil, err
+            }
+
+        case "ping":
+            anims, err = PingFromJSON(a)
             if ( err != nil ) {
                 return nil, err
             }
