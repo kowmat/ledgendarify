@@ -259,92 +259,190 @@ function secondsToMinutes(seconds){
   return [minutes, _seconds];
 }
 
+function shuffleArray(array) {
+    for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+    return array;
+}
+
+function genBeatsAnims(sections, beats, colors_array, anims_array, repeat, song_position){
+  return new Promise(function(resolve, reject){
+    let beats_generated = [];
+    for(let j = 0; j<sections.length; j++){
+      let colors_list = [...colors_array];
+      if(j%2 == 0){
+        colors_list.pop();
+      }
+      else {
+        colors_list.shift();
+        colors_list.reverse();
+      }
+      sections[j].colors_list = colors_list;
+    }
+    sections.forEach((section, index) => {
+      let section_animations = [];
+      let how_many = anims_array.length * section.time_signature ;
+      let tracking = 0;
+      for(let bi = 0; bi<beats.length; bi++){
+        let animation_counter = 0;
+        if(beats[bi].start > section.start &&
+          beats[bi].start < (section.start + section.duration)){
+            if(bi%how_many == 0){
+              anims_array = shuffleArray(anims_array)
+            }
+            // console.log("COLORS_LIST", section);
+            let anim_name = anims_array[tracking%anims_array.length];
+            if(bi%section.time_signature == 0){
+              tracking++;
+            }
+
+            section_animations.push({name: anim_name, color: section.colors_list[bi%section.colors_list.length], start: beats[bi].start, duration: beats[bi].duration});
+          }
+        }
+        // console.log(section_animations);
+        beats_generated = beats_generated.concat(section_animations);
+      });
+    console.log("BEATS_GEN", beats_generated);
+    resolve(beats_generated);
+  });
+}
+
+
 function describeSections(ana){
-  let end_of_fade_in = ana.track.end_of_fade_in;
-  let start_of_fade_out = ana.track.start_of_fade_out;
-  let duration = ana.track.duration;
-  let sections = ana.sections;
+  return new Promise(function(resolve, reject){
+    let end_of_fade_in = ana.track.end_of_fade_in;
+    let start_of_fade_out = ana.track.start_of_fade_out;
+    let duration = ana.track.duration;
+    let beats = ana.beats;
+    let sections = ana.sections;
+    let segments = ana.segments;
+    let chosen_segments = [];
+    let the_loudest_section = {
+      index: 0,
+      loudness: sections[0].loudness
+    };
 
 
-  console.log(sections);
-  let i = 1;
+    // console.log(sections);
+    let i = 1;
 
-  for(let i = 1; i<sections.length-1; i++){
-    if(sections[i].confidence < SECTION_DURATION_CONFIDENCE){
-      let updated_section;
-      let splice_index;
-      if(sections[i-1].confidence > sections[i+1]){
-        updated_section = sections[i+1];
-        updated_section.start = sections[i].start;
+    for(let i = 1; i<sections.length-1; i++){
+      if(sections[i].confidence < SECTION_DURATION_CONFIDENCE){
+        let updated_section;
+        let splice_index;
+        if(sections[i-1].confidence > sections[i+1]){
+          updated_section = sections[i+1];
+          updated_section.start = sections[i].start;
+        }
+        else{
+          updated_section = sections[i-1];
+        }
+        updated_section.duration = updated_section.duration + sections[i].duration;
+        // updated_section.confidence = sections[i].confidence;
+        updated_section.loudness = (updated_section.loudness + sections[i].loudness)/2;
+        updated_section.tempo = (updated_section.tempo + sections[i].tempo)/2;
+        if(updated_section.key_confidence < sections[i].key_confidence){
+          updated_section.key_confidence = sections[i].key_confidence;
+          updated_section.key = sections[i].key;
+        }
+        if(updated_section.mode_confidence < sections[i].mode_confidence){
+          updated_section.mode_confidence = sections[i].mode_confidence;
+          updated_section.mode = sections[i].mode;
+        }
+        if(updated_section.time_signature_confidence < sections[i].time_signature_confidence){
+          updated_section.time_signature_confidence = sections[i].time_signature_confidence;
+          updated_section.time_signature = sections[i].time_signature;
+        }
+        sections.splice(i, 1);
       }
-      else{
-        updated_section = sections[i-1];
-      }
-      updated_section.duration = updated_section.duration + sections[i].duration;
-      // updated_section.confidence = sections[i].confidence;
-      updated_section.loudness = (updated_section.loudness + sections[i].loudness)/2;
-      updated_section.tempo = (updated_section.tempo + sections[i].tempo)/2;
-      if(updated_section.key_confidence < sections[i].key_confidence){
-        updated_section.key_confidence = sections[i].key_confidence;
-        updated_section.key = sections[i].key;
-      }
-      if(updated_section.mode_confidence < sections[i].mode_confidence){
-        updated_section.mode_confidence = sections[i].mode_confidence;
-        updated_section.mode = sections[i].mode;
-      }
-      if(updated_section.time_signature_confidence < sections[i].time_signature_confidence){
-        updated_section.time_signature_confidence = sections[i].time_signature_confidence;
-        updated_section.time_signature = sections[i].time_signature;
-      }
-      sections.splice(i, 1);
     }
-  }
-  for(let i = 0; i<sections.length; i++){
-    if(i == 0){
-      sections[i].duration = sections[i].duration - 1;
+    for(let i = 0; i<sections.length; i++){
+      if(sections[i].loudness > the_loudest_section.loudness){
+        the_loudest_section.index = i;
+        the_loudest_section.loudness = sections[i].loudness;
+      }
+      if(i == 0){
+        sections[i].duration = sections[i].duration - 1;
+      }
+      else {
+        sections[i].start = sections[i].start - 1;
+      }
+      let start_m = secondsToMinutes(sections[i].start);
+      sections[i].start_m = start_m;
+      sections[i].end_m =  secondsToMinutes(sections[i].start+sections[i].duration);
     }
-    else {
-      sections[i].start = sections[i].start - 1;
+    // console.log("\n\nPO:\n");
+    // console.log(sections);
+    // console.log("loudest", the_loudest_section);
+    let section_pointer = 0;
+    let already_passed = false;
+    for(let j = 0; j<segments.length; j++){
+      if(Math.abs(segments[j].start-sections[section_pointer].start)<1){
+        already_passed = false;
+        // console.log(segments[j]);
+      }
+      else if(already_passed == false){
+        already_passed = true;
+        if(section_pointer<sections.length-1){
+          section_pointer++;
+        }
+      }
     }
-    let start_m = secondsToMinutes(sections[i].start);
-    sections[i].start_m = start_m;
-    sections[i].end_m = secondsToMinutes(sections[i].start+sections[i].duration);
-  }
-  console.log("\n\nPO:\n");
-  console.log(sections);
-
+    let return_object = {
+      sections: sections,
+      loudest: the_loudest_section
+    }
+    resolve(return_object);
+  });
 
 }
 
 
 function songClimate(features){
-  //add colors and some randomness
-  // happy colors: hue<180. sad colors: hue>180
-  let song_colors = generateColors(features, 5);
-
-  let animations = ["sweep", "pulse", "fmfs", "GradientOverTime"];
-  let strobo_present = false;
-  let energetic = features.danceability + features.energy;
-  if(energetic > 1.25){
-    animations.push("police");
-    if(features.tempo>125 &&
-      energetic > 1.38 &&
-      features.valence < 0.67){
-      strobo_present = true;
+  return new Promise(function(resolve, reject){
+    //add colors and some randomness
+    // happy colors: hue<180. sad colors: hue>180
+    let song_colors = generateColors(features, 5);
+    let animations = ["sweep", "pulse", "fmfs", "GradientOverTime"];
+    let strobo_present = false;
+    let energetic = features.danceability + features.energy;
+    if(energetic > 1.25){
+      animations.push("police");
+      if(features.tempo>125 &&
+        energetic > 1.38 &&
+        features.valence < 0.67){
+        strobo_present = true;
+      }
+      if(features.tempo>115){
+        animations.push("pingpong");
+      }
+      if(features.tempo>125 && features.valence < 0.6){
+        animations.push("randomflashes");
+      }
     }
-    if(features.tempo>115){
-      animations.push("pingpong");
+    let return_object = {
+      song_colors: song_colors,
+      animations: animations,
+      strobo: strobo_present
     }
-    if(features.tempo>125 && features.valence < 0.6){
-      animations.push("randomflashes");
-    }
-  }
-  console.log(song_colors, "\n", animations, "\n", strobo_present);
+    resolve(return_object);
+  });
 }
 
 function generateAnims(track){
-  songClimate(track.features);
-  describeSections(track.analysis);
+  songClimate(track.features).then((climate) => {
+    describeSections(track.analysis).then((sections_describtion) => {
+      console.log("climate",climate);
+      genBeatsAnims(sections_describtion.sections, track.analysis.beats, climate.song_colors, climate.animations);
+    });
+  });
+  // console.log(climate);
+  // console.log(sections_describtion);
+  // console.log(beats_anims_array);
 }
 
 function fetchSingleAnalysis(track_id){
