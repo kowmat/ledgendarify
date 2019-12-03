@@ -33,7 +33,7 @@ function genAnimation(
     return {
         "name": name,
         "direction": direction,
-        "start": start,
+        "start": start_pos,
         "length": length,
         "duration": duration,
         "duration_two": duration_two,
@@ -54,7 +54,7 @@ function genSweep(
         direction,
         start_pos, length,
         duration, 0, offset,
-        [col_a, col_b]
+        [start_col, end_col]
     )
 }
 
@@ -131,7 +131,7 @@ function genPolice(
         true,
         0, 1,
         duration, interval, offset,
-        [start_col, end_col]
+        [left_col, right_col]
     )
 }
 
