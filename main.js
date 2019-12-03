@@ -269,6 +269,25 @@ function shuffleArray(array) {
     return array;
 }
 
+function getStartEndIndex(beats, section){
+  let start_index = 0;
+  let end_index = 0;
+  for(let b = 0; b<beats.length; b++){
+    if(beats[b].start >= section.start){
+      start_index = b;
+      break;
+    }
+  }
+  for(let b = start_index; b<beats.length; b++){
+    if(beats[b].start >= section.start + section.duration){
+      end_index = b;
+      break;
+    }
+  }
+  console.log(start_index, end_index);
+  return [start_index, end_index];
+}
+
 function genBeatsAnims(sections, beats, colors_array, anims_array, repeat, song_position){
   return new Promise(function(resolve, reject){
     let beats_generated = [];
@@ -287,29 +306,59 @@ function genBeatsAnims(sections, beats, colors_array, anims_array, repeat, song_
       let section_animations = [];
       let how_many = anims_array.length * section.time_signature ;
       let tracking = 0;
-      for(let bi = 0; bi<beats.length; bi++){
-        let animation_counter = 0;
-        if(beats[bi].start > section.start &&
-          beats[bi].start < (section.start + section.duration)){
-            if(bi%how_many == 0){
-              anims_array = shuffleArray(anims_array)
-            }
-            // console.log("COLORS_LIST", section);
-            let anim_name = anims_array[tracking%anims_array.length];
-            if(bi%section.time_signature == 0){
-              tracking++;
-            }
 
-            section_animations.push({name: anim_name, color: section.colors_list[bi%section.colors_list.length], start: beats[bi].start, duration: beats[bi].duration});
-          }
-        }
+      let indexes = getStartEndIndex(beats, section);
+      let section_beats = beats.slice(indexes[0], indexes[1]);
+
+
+      // while(bi<beats.length; bi++){
+      //   let animation_counter = 0;
+      //   if(beats[bi].start > section.start &&
+      //     beats[bi].start < (section.start + section.duration)){
+      //       if(bi%how_many == 0){
+      //         anims_array = shuffleArray(anims_array)
+      //       }
+      //       // console.log("COLORS_LIST", section);
+      //       let anim_name = anims_array[tracking%anims_array.length];
+      //       if(bi%section.time_signature == 0){
+      //         tracking++;
+      //       }
+      //
+      //       section_animations.push({name: anim_name, color: section.colors_list[bi%section.colors_list.length], start: beats[bi].start, duration: beats[bi].duration});
+      //     }
+      //   }
         // console.log(section_animations);
-        beats_generated = beats_generated.concat(section_animations);
+        // beats_generated = beats_generated.concat(section_animations);
+        console.log("SECTION NUMBER", index, section_beats);
       });
     console.log("BEATS_GEN", beats_generated);
     resolve(beats_generated);
   });
 }
+
+// sections.forEach((section, index) => {
+//   let section_animations = [];
+//   let how_many = anims_array.length * section.time_signature ;
+//   let tracking = 0;
+//   for(let bi = 0; bi<beats.length; bi++){
+//     let animation_counter = 0;
+//     if(beats[bi].start > section.start &&
+//       beats[bi].start < (section.start + section.duration)){
+//         if(bi%how_many == 0){
+//           anims_array = shuffleArray(anims_array)
+//         }
+//         // console.log("COLORS_LIST", section);
+//         let anim_name = anims_array[tracking%anims_array.length];
+//         if(bi%section.time_signature == 0){
+//           tracking++;
+//         }
+//
+//         section_animations.push({name: anim_name, color: section.colors_list[bi%section.colors_list.length], start: beats[bi].start, duration: beats[bi].duration});
+//       }
+//     }
+//     // console.log(section_animations);
+//     beats_generated = beats_generated.concat(section_animations);
+//   });
 
 
 function describeSections(ana){
