@@ -2,10 +2,13 @@ const SpotifyWebApi = require('spotify-web-api-node');
 const SocketServer = require('ws').Server;
 const express = require('express');
 const path = require('path');
-const fs = require("fs");
+const fs = require('fs');
 const credentials = require('./credentials.json');
 const app = express();
 const router = express.Router();
+const generators = require('./generators.js');
+const bridge = require('./bridge.js');
+
 
 const PORT = process.env.PORT || 9669;
 
@@ -208,13 +211,13 @@ function generateColorsHue(colors_list, happy){
   else{
     color = roundToTwo(getRandom(5, 10, false)/10);
   }
-  if(colors_list.includes(color)){
-    return generateColorsHue(colors_list, happy);
-  }
-  else{
-    colors_list.push(color);
+  // if(colors_list.includes(color)){
+  //   return generateColorsHue(colors_list, happy);
+  // }
+  // else{
+  //   colors_list.push(color);
     return color;
-  }
+  // }
 }
 
 function limit(x, min, max){
@@ -227,9 +230,9 @@ function limit(x, min, max){
   return x;
 }
 
-function generateColors(features, num_of_colors=4){
+function generateColors(features, num_of_colors=7){
   let valueRangeBottom = roundToTwo(mapVal(features.tempo, 100, 150, 0.5, 1));
-  let colors_hsv = [];
+  let colors_rgb = [];
   let colors_h = [];
   let colors_s = [];
   let offset = roundToTwo(Math.random()/10);
@@ -248,9 +251,10 @@ function generateColors(features, num_of_colors=4){
   for(let i=0; i<num_of_colors; i++){
     colors_h[i] = roundToTwo(colors_h[i] + offset), 0, 1;
     colors_s[i] = getRandom(valueRangeBottom, 1, true);
-    colors_hsv.push([colors_h[i], colors_s[i], 1]);
+    let color_hsv = [colors_h[i], colors_s[i], 1];
+    colors_rgb.push(HSVtoRGB(color_hsv));
   }
-  return colors_hsv;
+  return colors_rgb;
 }
 
 function secondsToMinutes(seconds){
@@ -288,7 +292,39 @@ function getStartEndIndex(beats, section){
   return [start_index, end_index];
 }
 
-function genBeatsAnims(sections, beats, colors_array, anims_array, repeat, song_position){
+function s_to_ms(s){
+  return Math.round(s*1000);
+}
+
+function HSVtoRGB(values) {
+    var r, g, b, i, f, p, q, t;
+    if (arguments.length === 1) {
+      s = values[1], v = values[2], h = values[0];
+    }
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+    p = v * (1 - s);
+    q = v * (1 - f * s);
+    t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+function randomColorFromList(colors_list){
+  colors_list = shuffleArray(colors_list);
+  color = colors_list.pop();
+  console.log("randomColorFromList", color, colors_list);
+  return [color, colors_list];
+}
+
+function genBeatsAnims(sections, beats, colors_array, anims_array, repeat=4, song_position, animations_per_song = 3){
   return new Promise(function(resolve, reject){
     let beats_generated = [];
     for(let j = 0; j<sections.length; j++){
@@ -302,63 +338,100 @@ function genBeatsAnims(sections, beats, colors_array, anims_array, repeat, song_
       }
       sections[j].colors_list = colors_list;
     }
+    console.log("SECTIONS:", sections);
     sections.forEach((section, index) => {
-      let section_animations = [];
+      let section_animations;
       let how_many = anims_array.length * section.time_signature ;
-      let tracking = 0;
-
       let indexes = getStartEndIndex(beats, section);
       let section_beats = beats.slice(indexes[0], indexes[1]);
+      let section_beats_animated = [];
+      if(section.the_loudest_section){
+        section_animations = anims_array;
+        section_animations = shuffleArray(section_animations);
+      }
+      else {
+        section_animations = anims_array;
 
-
-      // while(bi<beats.length; bi++){
-      //   let animation_counter = 0;
-      //   if(beats[bi].start > section.start &&
-      //     beats[bi].start < (section.start + section.duration)){
-      //       if(bi%how_many == 0){
-      //         anims_array = shuffleArray(anims_array)
-      //       }
-      //       // console.log("COLORS_LIST", section);
-      //       let anim_name = anims_array[tracking%anims_array.length];
-      //       if(bi%section.time_signature == 0){
-      //         tracking++;
-      //       }
-      //
-      //       section_animations.push({name: anim_name, color: section.colors_list[bi%section.colors_list.length], start: beats[bi].start, duration: beats[bi].duration});
-      //     }
-      //   }
-        // console.log(section_animations);
-        // beats_generated = beats_generated.concat(section_animations);
-        console.log("SECTION NUMBER", index, section_beats);
+        // let start_index = (index * animations_per_song)%anims_array.length;
+        // let end_index = (index * animations_per_song + animations_per_song)%anims_array.length;
+        // if(start_index > end_index){
+        //   let list_a = anims_array.slice(start_index);
+        //   let list_b = anims_array.slice(0, end_index);
+        //   section_animations.concat(list_a, list_b);
+        // }
+        // else{
+        //   let list_1 = anims_array.slice(start_index, end_index);
+        //   section_animations = list_1;
+        // }
+      }
+      let bi = 0;
+      while(bi<section_beats.length){
+        // console.log("ELO BI", bi);
+        for(let a = 0; a<section_animations.length; a++){
+          if(section_animations[a] == "sweep"){
+            let random_mode = Math.floor(Math.random() * 3);
+            let animation_colors = [...section.colors_list];
+            let direction = false;
+            let start_pos = 1;
+            let length = 1;
+            // let random_colors = [...animation_colors];
+            if(random_mode == 0){
+              direction = false;
+              start_pos = 1;
+            }
+            else {
+              direction = true;
+              start_pos = 0;
+            }
+            for(let r = 0; r<repeat; r++){
+              let random_color_a = section.colors_list[Math.floor(Math.random() * section.colors_list.length)];
+              let random_color_b = section.colors_list[Math.floor(Math.random() * section.colors_list.length)];
+              if(random_mode == 2){
+                direction = !direction;
+                start_pos = 1 - start_pos;
+              }
+              // let temp;
+              // temp = randomColorFromList(random_colors);
+              // let random_color_a = temp[0];
+              // animation_colors = temp[1];
+              // temp = randomColorFromList(animation_colors);
+              // let random_color_b = temp[0];
+              // animation_colors = temp[1];
+              if(bi<section_beats.length){
+                let beat_end = section_beats[bi].start + section_beats[bi].duration;
+                if(bi < section_beats.length -1){
+                  if(beat_end - 0.01>section_beats[bi+1].start){
+                    // console.log("GONI", beat_end, section_beats[bi+1].start);
+                  }
+                }
+                let single_animation = generators.genSweep(
+                  direction,          // bool
+                  start_pos, length,  // float 0 to 1
+                  s_to_ms(section_beats[bi].duration), s_to_ms(section_beats[bi].start),   // int milliseconds
+                  generators.genColor(random_color_a[0], random_color_a[1], random_color_a[2]), generators.genColor(random_color_b[0], random_color_b[1], random_color_b[2])
+                );
+                bi++;
+                section_beats_animated.push(single_animation);
+              }
+            }
+            }
+          }
+        }
+      let json = generators.genSendJSON(
+        generators.ANIMS, section_beats_animated
+      );
+      bridge.sendJSON(json, 10108, 'http://localhost').catch((err) => {
+        if(err){
+          console.log(err);
+        }
       });
-    console.log("BEATS_GEN", beats_generated);
+      // console.log("SECTION NUMBER", index, section_beats_animated);
+      // console.log("FOREACH INDEX", index, Date.now());
+
+      });
     resolve(beats_generated);
   });
 }
-
-// sections.forEach((section, index) => {
-//   let section_animations = [];
-//   let how_many = anims_array.length * section.time_signature ;
-//   let tracking = 0;
-//   for(let bi = 0; bi<beats.length; bi++){
-//     let animation_counter = 0;
-//     if(beats[bi].start > section.start &&
-//       beats[bi].start < (section.start + section.duration)){
-//         if(bi%how_many == 0){
-//           anims_array = shuffleArray(anims_array)
-//         }
-//         // console.log("COLORS_LIST", section);
-//         let anim_name = anims_array[tracking%anims_array.length];
-//         if(bi%section.time_signature == 0){
-//           tracking++;
-//         }
-//
-//         section_animations.push({name: anim_name, color: section.colors_list[bi%section.colors_list.length], start: beats[bi].start, duration: beats[bi].duration});
-//       }
-//     }
-//     // console.log(section_animations);
-//     beats_generated = beats_generated.concat(section_animations);
-//   });
 
 
 function describeSections(ana){
@@ -372,7 +445,6 @@ function describeSections(ana){
     let chosen_segments = [];
     let the_loudest_section = {
       index: 0,
-      loudness: sections[0].loudness
     };
 
 
@@ -410,9 +482,9 @@ function describeSections(ana){
       }
     }
     for(let i = 0; i<sections.length; i++){
+      sections[i].the_loudest_section = false;
       if(sections[i].loudness > the_loudest_section.loudness){
         the_loudest_section.index = i;
-        the_loudest_section.loudness = sections[i].loudness;
       }
       if(i == 0){
         sections[i].duration = sections[i].duration - 1;
@@ -424,6 +496,7 @@ function describeSections(ana){
       sections[i].start_m = start_m;
       sections[i].end_m =  secondsToMinutes(sections[i].start+sections[i].duration);
     }
+    sections[the_loudest_section.index].the_loudest_section = true;
     // console.log("\n\nPO:\n");
     // console.log(sections);
     // console.log("loudest", the_loudest_section);
@@ -441,11 +514,7 @@ function describeSections(ana){
         }
       }
     }
-    let return_object = {
-      sections: sections,
-      loudest: the_loudest_section
-    }
-    resolve(return_object);
+    resolve(sections);
   });
 
 }
@@ -455,8 +524,9 @@ function songClimate(features){
   return new Promise(function(resolve, reject){
     //add colors and some randomness
     // happy colors: hue<180. sad colors: hue>180
-    let song_colors = generateColors(features, 5);
-    let animations = ["sweep", "pulse", "fmfs", "GradientOverTime"];
+    let song_colors = generateColors(features, 8);
+    // let animations = ["sweep", "pulse", "fmfs", "GradientOverTime"];
+    let animations = ["sweep"];
     let strobo_present = false;
     let energetic = features.danceability + features.energy;
     if(energetic > 1.25){
@@ -484,13 +554,14 @@ function songClimate(features){
 
 function generateAnims(track){
   songClimate(track.features).then((climate) => {
-    describeSections(track.analysis).then((sections_describtion) => {
+    describeSections(track.analysis).then((sections_desc) => {
       console.log("climate",climate);
-      genBeatsAnims(sections_describtion.sections, track.analysis.beats, climate.song_colors, climate.animations);
+      console.log("track_features", track.features);
+      genBeatsAnims(sections_desc, track.analysis.beats, climate.song_colors, climate.animations);
     });
   });
   // console.log(climate);
-  // console.log(sections_describtion);
+  // console.log(sections_desc);
   // console.log(beats_anims_array);
 }
 
