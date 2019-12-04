@@ -3,9 +3,9 @@ const request = require('request')
 
 
 function sendJSON(
-    JSON,                   // use generators.genSendJSON
-    port = 10108,           // optional arg
-    address = 'localhost'   // optional arg
+    JSON,                           // use generators.genSendJSON
+    port = 10108,                   // optional arg
+    address = 'http://localhost'    // optional arg
 ) {
     return new Promise((res, rej) => {
         request.post(
