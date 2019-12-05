@@ -350,42 +350,41 @@ function randomColor(ha, sa, va){
 
 function animationToBeat(times){
   let anims = [];
-  // if(typeOfAnim == "sweep"){
-    let random_mode = Math.floor(Math.random() * 3);
-    let gradient_chance = Math.floor(Math.random() * 2);
-    let gradient_present;
-    if(gradient_chance == 1){
-      gradient_present = true;
-    }
-    else if(gradient_chance == 0){
-      gradient_present = false;
-    }
-    // let random_colors = [...animation_colors];
-    for(let t = 0; t<times; t++){
-      let start_pos = 1;
-      let length = 1;
-      let direction = false;
-      if(random_mode == 0){
-        direction = false;
-        start_pos = 1;
-      }
-      else if(random_mode == 1){
-        direction = true;
-        start_pos = 0;
-      }
-      else if(random_mode == 2){
-        direction = !direction;
-        start_pos = 1 - start_pos;
-      }
-      let anim = {};
-      anim.direction = direction;
-      anim.start_pos = start_pos;
-      anim.length = length;
-      anim.gradient_present = gradient_present;
-      anims.push(anim);
-    }
-    return anims;
+  let random_mode = Math.floor(Math.random() * 3);
+  let gradient_chance = Math.floor(Math.random() * 2);
+  let gradient_present;
+  if(gradient_chance == 1){
+    gradient_present = true;
   }
+  else if(gradient_chance == 0){
+    gradient_present = false;
+  }
+  // let random_colors = [...animation_colors];
+  for(let t = 0; t<times; t++){
+    let start_pos = 1;
+    let length = 1;
+    let direction = false;
+    if(random_mode == 0){
+      direction = false;
+      start_pos = 1;
+    }
+    else if(random_mode == 1){
+      direction = true;
+      start_pos = 0;
+    }
+    else if(random_mode == 2){
+      direction = !direction;
+      start_pos = 1 - start_pos;
+    }
+    let anim = {};
+    anim.direction = direction;
+    anim.start_pos = start_pos;
+    anim.length = length;
+    anim.gradient_present = gradient_present;
+    anims.push(anim);
+  }
+  return anims;
+}
 
 
 function getTwoColors(prev_color){
@@ -432,160 +431,51 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
           }
         }
 
-        if(beats[bi].bar_start){
-          let animations = animationToBeat(times);
-          let sec_curr_anim = section_animations[s];
-          for(let a = 0; a<animations.length; a++){
-            if(beats[bi].confidence>0){
-              let two_colors = getTwoColors(prev_color);
-              let color_1;
-              let color_2;
-              if(animations[a].gradient_present){
-                color_1 = two_colors[0];
-                color_2 = two_colors[1];
-                prev_color = two_colors[1];
-              }
-              else {
-                color_1 = two_colors[0];
-                color_2 = two_colors[0];
-                prev_color = two_colors[0];
-              }
-              if(sec_curr_anim == "sweep"){
-                // console.log("ELO");
-                let single_animation = generators.genSweep(
-                  animations[a].direction,          // bool
-                  animations[a].start_pos, animations[a].length,  // float 0 to 1
-                  s_to_ms(beats[bi].duration),
-                  s_to_ms(beats[bi].start),   // int milliseconds
-                  generators.genColor(
-                    color_1.rgb[0], color_1.rgb[1], color_1.rgb[2]
-                  ),
-                  generators.genColor(
-                    color_2.rgb[0], color_2.rgb[1], color_2.rgb[2]
-                  )
-                );
-                bi++;
-                beats_generated.push(single_animation);
-              }
-              else if(sec_curr_anim == "pulse"){
-                let two_colors = getTwoColors(prev_color);
-                let color_1;
-                let color_2;
-                if(animations[a].gradient_present){
-                  color_1 = two_colors[0];
-                  color_2 = two_colors[1];
-                  prev_color = two_colors[1];
-                }
-                else {
-                  color_1 = two_colors[0];
-                  color_2 = two_colors[0];
-                  prev_color = two_colors[0];
-                }
-                let single_animation = generators.genPulse(
-                  true,          // bool
-                  0, 1,  // float 0 to 1
-                  s_to_ms(beats[bi].duration*0.4),
-                  s_to_ms(beats[bi].duration*0.8),
-                  s_to_ms(beats[bi].start),   // int milliseconds
-                  generators.genColor(
-                    color_1.rgb[0], color_1.rgb[1], color_1.rgb[2]
-                  ),
-                  generators.genColor(
-                    color_2.rgb[0], color_2.rgb[1], color_2.rgb[2]
-                  )
-                );
-                bi++;
-                beats_generated.push(single_animation);
-              }
-              else if(sec_curr_anim == "fmfs"){
-                let two_colors = getTwoColors(prev_color);
-                let color_1;
-                let color_2;
-                if(animations[a].gradient_present){
-                  color_1 = two_colors[0];
-                  color_2 = two_colors[1];
-                  prev_color = two_colors[1];
-                }
-                else {
-                  color_1 = two_colors[0];
-                  color_2 = two_colors[0];
-                  prev_color = two_colors[0];
-                }
-                let single_animation = generators.genFmfs(         // bool
-                  s_to_ms(beats[bi].duration),
-                  s_to_ms(beats[bi].start),   // int milliseconds
-                  generators.genColor(
-                    color_1.rgb[0], color_1.rgb[1], color_1.rgb[2]
-                  ),
-                  generators.genColor(
-                    color_2.rgb[0], color_2.rgb[1], color_2.rgb[2]
-                  )
-                );
-                bi++;
-                beats_generated.push(single_animation);
-              }
-              else if(sec_curr_anim == "police"){
-                let two_colors = getTwoColors(prev_color);
-                let color_1;
-                let color_2;
-                color_1 = two_colors[0];
-                color_2 = two_colors[1];
-                prev_color = two_colors[1];
-                let single_animation = generators.genPolice(         // bool
-                  generators.genColor(
-                    color_1.rgb[0], color_1.rgb[1], color_1.rgb[2]
-                  ),
-                  generators.genColor(
-                    color_2.rgb[0], color_2.rgb[1], color_2.rgb[2]
-                  ),
-                  s_to_ms(beats[bi].duration),
-                  40,
-                  s_to_ms(beats[bi].start),
-                );
-                bi++;
-                beats_generated.push(single_animation);
-              }
-              else if(sec_curr_anim == "gradient"){
-                let two_colors_1 = two_colors_prev;
-                let two_colors_2 = getTwoColors(prev_color);
-                let color_1 = two_colors_1[0];
-                let color_2 = two_colors_1[1];
-                let color_3 = two_colors_2[0];
-                let color_4 = two_colors_2[1];
-                prev_color = two_colors_2[1];
-                let single_animation = generators.genGradient(
-                  true,
-                  0, 1,
-                  s_to_ms(beats[bi].duration), 20, s_to_ms(beats[bi].start),
-                  generators.genColor(
-                    color_1.rgb[0], color_1.rgb[1], color_1.rgb[2]
-                  ),
-                  generators.genColor(
-                    color_2.rgb[0], color_2.rgb[1], color_2.rgb[2]
-                  ),
-                  generators.genColor(
-                    color_3.rgb[0], color_3.rgb[1], color_3.rgb[2]
-                  ),
-                  generators.genColor(
-                    color_4.rgb[0], color_4.rgb[1], color_4.rgb[2]
-                  ),
-                );
-                two_colors_prev = two_colors_2;
-                bi++;
-                beats_generated.push(single_animation);
-              }
+        if(!beats[bi].bar_start){
+          bi++;
+          continue;
+        }
 
-            }
+        let animations = animationToBeat(times);
+        let sec_curr_anim = section_animations[s];
+        for(let a = 0; a<animations.length; a++){
+          if(beats[bi].confidence == 0){
+            continue;
           }
-          if(s<section_animations.length-1){
-            s++;
+
+          let two_colors = getTwoColors(prev_color);
+          let color_1;
+          let color_2;
+          if(animations[a].gradient_present){
+            color_1 = two_colors[0];
+            color_2 = two_colors[1];
+            prev_color = two_colors[1];
           }
-          else{
-            s = 0;
+          else {
+            color_1 = two_colors[0];
+            color_2 = two_colors[0];
+            prev_color = two_colors[0];
+          }
+
+
+          let obj_resolved = r.animResolver(
+            sec_curr_anim,
+            animations[a],
+            beats[bi],
+            color_1, color_2, prev_color,
+            getTwoColors
+          )
+          if ( obj_resolved.animations.length != 0 ) {
+            bi++;
+            beats_generated.concat(obj_resolved.animations);
           }
         }
+
+        if( s < (section_animations.length-1) ) {
+          s++;
+        }
         else{
-          bi++;
+          s = 0;
         }
       }
     }
