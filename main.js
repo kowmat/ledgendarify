@@ -418,11 +418,23 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
           section_animations.push(anims_array[ai]);
         }
       }
+
+      console.log("ANIMATions", num ,":", section_animations);
       let indexes = getStartEndIndex(beats, sections[num]);
       let times = sections[num].time_signature;
+      console.log("TIMES", num ,":", times);
+      let two_colors_prev = getTwoColors(prev_color);
       for(let bi = indexes[0]; bi<indexes[1];){
+        for(let x = indexes[0]; x<indexes[1]; x++){
+          beats[x].bar_start = false;
+          if(x%times == 0){
+            beats[x].bar_start = true;
+          }
+        }
+
         if(beats[bi].bar_start){
           let animations = animationToBeat(times);
+          let sec_curr_anim = section_animations[s];
           for(let a = 0; a<animations.length; a++){
             if(beats[bi].confidence>0){
               let two_colors = getTwoColors(prev_color);
@@ -438,7 +450,7 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
                 color_2 = two_colors[0];
                 prev_color = two_colors[0];
               }
-              if(section_animations[s] == "sweep"){
+              if(sec_curr_anim == "sweep"){
                 // console.log("ELO");
                 let single_animation = generators.genSweep(
                   animations[a].direction,          // bool
@@ -455,7 +467,7 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
                 bi++;
                 beats_generated.push(single_animation);
               }
-              else if(section_animations[s] == "pulse"){
+              else if(sec_curr_anim == "pulse"){
                 let two_colors = getTwoColors(prev_color);
                 let color_1;
                 let color_2;
@@ -485,7 +497,7 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
                 bi++;
                 beats_generated.push(single_animation);
               }
-              else if(section_animations[s] == "fmfs"){
+              else if(sec_curr_anim == "fmfs"){
                 let two_colors = getTwoColors(prev_color);
                 let color_1;
                 let color_2;
@@ -512,7 +524,7 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
                 bi++;
                 beats_generated.push(single_animation);
               }
-              else if(section_animations[s] == "police"){
+              else if(sec_curr_anim == "police"){
                 let two_colors = getTwoColors(prev_color);
                 let color_1;
                 let color_2;
@@ -533,6 +545,36 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
                 bi++;
                 beats_generated.push(single_animation);
               }
+              else if(sec_curr_anim == "gradient"){
+                let two_colors_1 = two_colors_prev;
+                let two_colors_2 = getTwoColors(prev_color);
+                let color_1 = two_colors_1[0];
+                let color_2 = two_colors_1[1];
+                let color_3 = two_colors_2[0];
+                let color_4 = two_colors_2[1];
+                prev_color = two_colors_2[1];
+                let single_animation = generators.genGradient(
+                  true,
+                  0, 1,
+                  s_to_ms(beats[bi].duration), 20, s_to_ms(beats[bi].start),
+                  generators.genColor(
+                    color_1.rgb[0], color_1.rgb[1], color_1.rgb[2]
+                  ),
+                  generators.genColor(
+                    color_2.rgb[0], color_2.rgb[1], color_2.rgb[2]
+                  ),
+                  generators.genColor(
+                    color_3.rgb[0], color_3.rgb[1], color_3.rgb[2]
+                  ),
+                  generators.genColor(
+                    color_4.rgb[0], color_4.rgb[1], color_4.rgb[2]
+                  ),
+                );
+                two_colors_prev = two_colors_2;
+                bi++;
+                beats_generated.push(single_animation);
+              }
+
             }
           }
           if(s<section_animations.length-1){
@@ -554,8 +596,6 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
 
 function describeSections(ana){
   return new Promise(function(resolve, reject){
-    let end_of_fade_in = ana.track.end_of_fade_in;
-    let start_of_fade_out = ana.track.start_of_fade_out;
     let duration = ana.track.duration;
     let beats = ana.beats;
     let sections = ana.sections;
@@ -566,13 +606,6 @@ function describeSections(ana){
       index: 0,
       loudness: sections[0]
     };
-    for(let x = 0; x<beats.length; x++){
-      beats[x].bar_start = false;
-      if(x%time_signature == 0){
-        beats[x].bar_start = true;
-      }
-    }
-
 
     // console.log(sections);
     let i = 1;
