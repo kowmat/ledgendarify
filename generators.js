@@ -152,6 +152,57 @@ function genPing(
 }
 
 
+function genRandomFlashes(
+    clear,                      // bool
+    length,                     // float 0 to 1
+    duration, interval, offset  // int milliseconds
+) {
+    let max_start_pos = 1-length
+    let count = duration/interval
+
+    let flashes = []
+
+    for ( let x = 0; x < count; x++ ) {
+        let start_pos = max_start_pos*Math.random()
+        let rel_length = length+start_pos;
+
+        let genRandomColor = () => {
+            return genColor(
+                Math.floor(Math.random()*256),
+                Math.floor(Math.random()*256),
+                Math.floor(Math.random()*256)
+            )
+        }
+
+        let rand_col_a = genRandomColor()
+        let rand_col_b = genRandomColor()
+
+        // pushing the random flash
+        flashes.push(genSweep(
+            true,
+            start_pos, rel_length,
+            interval, x*interval+offset,
+            rand_col_a, rand_col_b
+        ))
+
+        if ( !clear ) {
+            continue
+        }
+        // pushing the clearing sweep
+        flashes.push(
+            genSweep(
+                true,
+                start_pos, rel_length,
+                1, x*interval+offset+(interval-1),
+                {"r": 0,"g": 0,"b": 0}, {"r": 0,"g": 0,"b": 0}
+            )
+        )
+    }
+
+    return flashes
+}
+
+
 
 module.exports = {
     ANIMS: ANIMS,
@@ -165,5 +216,6 @@ module.exports = {
     genFmfs: genFmfs,
     genGradient: genGradient,
     genPolice: genPolice,
-    genPing: genPing
+    genPing: genPing,
+    genRandomFlashes: genRandomFlashes
 }
