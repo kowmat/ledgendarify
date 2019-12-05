@@ -92,7 +92,13 @@ function diffTrackObjects(object_new, object_old){
   //   return "RESTRICTIONS CHANGED";
   // }
   else {
-    return "POSITION CHANGED";
+    if(Math.abs(object_old.position + (Date.now()-object_old.timestamp) - object_new.position)>200){
+      console.log("MORE THAN 200ms");
+      return "POSITION CHANGED";
+    }
+    else{
+      return "NOTHING";
+    }
   }
 }
 
