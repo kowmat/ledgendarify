@@ -8,7 +8,7 @@ const app = express();
 const router = express.Router();
 const generators = require('./generators.js');
 const bridge = require('./bridge.js');
-
+const r = require('./resolver.js');
 
 const PORT = process.env.PORT || 9669;
 
@@ -446,17 +446,13 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
           let two_colors = getTwoColors(prev_color);
           let color_1;
           let color_2;
+          color_1 = two_colors[0];
+          color_2 = two_colors[0];
+          prev_color = two_colors[0];
           if(animations[a].gradient_present){
-            color_1 = two_colors[0];
             color_2 = two_colors[1];
             prev_color = two_colors[1];
           }
-          else {
-            color_1 = two_colors[0];
-            color_2 = two_colors[0];
-            prev_color = two_colors[0];
-          }
-
 
           let obj_resolved = r.animResolver(
             sec_curr_anim,
@@ -467,7 +463,7 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
           )
           if ( obj_resolved.animations.length != 0 ) {
             bi++;
-            beats_generated.concat(obj_resolved.animations);
+            beats_generated = beats_generated.concat(obj_resolved.animations);
           }
         }
 
@@ -637,6 +633,7 @@ function generateAnims(track){
           track.beats_anims = data;
           console.log("BeatsAnims generated length:", track.beats_anims.length);
           resolve(Date.now()-start_time);
+          // console.log("o b j", track.beats_anims);
         });
         // console.log(tracks_analysis);
       });
