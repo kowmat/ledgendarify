@@ -203,6 +203,45 @@ function genRandomFlashes(
 }
 
 
+function genRainbow(
+    duration, offset,   // int milliseconds
+    arr_colors          // optional, use genColor (has to be at least 6 colors)
+) {
+    let colors = [
+        {"r": 255,"g": 0,"b": 24},
+        {"r": 255,"g": 165,"b": 44},
+        {"r": 255,"g": 255,"b": 65},
+        {"r": 0,"g": 128,"b": 24},
+        {"r": 0,"g": 0,"b": 249},
+        {"r": 134,"g": 0,"b": 125}
+    ]
+    if ( arr_colors != undefined && arr_colors.length > 5 ) {
+        colors = arr_colors
+    }
+
+    const interval = Math.floor(duration/colors.length)
+    const step = 1/colors.length
+
+    let sweeps = []
+
+    for ( let x = 0; x < colors.length; x++ ) {
+        let start_pos = x*step
+        let rel_length = step+start_pos
+
+        sweeps.push(
+            genSweep(
+                true,
+                start_pos, rel_length,
+                interval, x*interval+offset,
+                colors[x], colors[x]
+            )
+        )
+    }
+
+    return sweeps
+}
+
+
 
 module.exports = {
     ANIMS: ANIMS,
@@ -217,5 +256,6 @@ module.exports = {
     genGradient: genGradient,
     genPolice: genPolice,
     genPing: genPing,
-    genRandomFlashes: genRandomFlashes
+    genRandomFlashes: genRandomFlashes,
+    genRainbow: genRainbow
 }
