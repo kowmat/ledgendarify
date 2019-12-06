@@ -204,6 +204,7 @@ function genRandomFlashes(
 
 
 function genRainbow(
+    bump,               // bool
     duration, offset,   // int milliseconds
     arr_colors          // optional, use genColor (has to be at least 6 colors)
 ) {
@@ -221,18 +222,22 @@ function genRainbow(
 
     const interval = Math.floor(duration/colors.length)
     const step = 1/colors.length
+    let show_duration = interval
+    if ( bump ) {
+        show_duration = 1
+    }
 
     let sweeps = []
 
     for ( let x = 0; x < colors.length; x++ ) {
-        let start_pos = x*step
-        let rel_length = step+start_pos
+        const start_pos = x*step
+        const rel_length = step+start_pos
 
         sweeps.push(
             genSweep(
                 true,
                 start_pos, rel_length,
-                interval, x*interval+offset,
+                show_duration, x*interval+offset,
                 colors[x], colors[x]
             )
         )
