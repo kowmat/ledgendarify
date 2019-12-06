@@ -145,7 +145,7 @@ function genPing(
     return genAnimation(
         "ping",
         direction,
-        0, 1,
+        0, 0.1,
         duration, interval, offset,
         [start_col_ping, end_col_ping, start_col_back, end_col_back]
     )

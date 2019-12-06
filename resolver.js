@@ -1,4 +1,4 @@
-const g = require('./generators.js')
+const g = require('./g.js')
 
 
 function s_to_ms(s){
@@ -14,7 +14,7 @@ function animResolver(
     colorGenerator
 ) {
     let animations = []
-    console.log("kolo", color_1, color_2);
+    // console.log("kolo", color_1, color_2);
     switch(anim_name) {
         case "sweep":
             let sweep = g.genSweep(
@@ -89,25 +89,31 @@ function animResolver(
             let color_3a = two_colors_2[0]
             let color_4a = two_colors_2[1]
             prev_color = two_colors_2[1]
-            let gradient = generators.genGradient(
+            let gradient = g.genGradient(
                 true,
                 0, 1,
                 s_to_ms(curr_beat.duration), 20, s_to_ms(curr_beat.start),
-                generators.genColor(
+                g.genColor(
                     color_1a.rgb[0], color_1a.rgb[1], color_1a.rgb[2]
                 ),
-                generators.genColor(
+                g.genColor(
                     color_2a.rgb[0], color_2a.rgb[1], color_2a.rgb[2]
                 ),
-                generators.genColor(
+                g.genColor(
                     color_3a.rgb[0], color_3a.rgb[1], color_3a.rgb[2]
                 ),
-                generators.genColor(
+                g.genColor(
                     color_4a.rgb[0], color_4a.rgb[1], color_4a.rgb[2]
                 )
             )
             animations.push(gradient)
 
+            break
+        case "rainbow":
+            let rainbow = g.genRainbow(
+                s_to_ms(curr_beat.duration), s_to_ms(curr_beat.start)
+            )
+            animations.push(rainbow);
             break
     }
 
