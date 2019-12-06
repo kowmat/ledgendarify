@@ -1,4 +1,4 @@
-const g = require('./g.js')
+const g = require('./generators.js')
 
 
 function s_to_ms(s){
@@ -82,8 +82,8 @@ function animResolver(
             break
 
         case "gradient":
-            let two_colors_1 = two_colors_prev
-            let two_colors_2 = colorGenerator(prev_color)
+            let two_colors_1 = colorGenerator(color_prev)
+            let two_colors_2 = colorGenerator(two_colors_1[0])
             let color_1a = two_colors_1[0]
             let color_2a = two_colors_1[1]
             let color_3a = two_colors_2[0]
@@ -111,11 +111,53 @@ function animResolver(
             break
         case "rainbow":
             let rainbow = g.genRainbow(
-                s_to_ms(curr_beat.duration), s_to_ms(curr_beat.start)
+                anim_options.direction,
+                s_to_ms(curr_beat.duration),
+                s_to_ms(curr_beat.start)
             )
-            animations.push(rainbow);
+            animations.push(...rainbow);
             break
-    }
+        case "ping":
+          let ping = g.genPing(
+            anim_options.direction,
+            s_to_ms(curr_beat.duration),
+            s_to_ms(curr_beat.duration/20), s_to_ms(curr_beat.start),
+              g.genColor(
+                  color_1.rgb[0], color_1.rgb[1], color_1.rgb[2]
+              ),
+              g.genColor(
+                  color_2.rgb[0], color_2.rgb[1], color_2.rgb[2]
+              ),
+              g.genColor(
+                  0, 0, 0
+              ),
+              g.genColor(
+                  0, 0, 0
+              )
+          )
+          animations.push(ping)
+          break
+        case "random_flashes":
+            let random_flashes = g.genRandomFlashes(
+                true,
+                0.15,
+                s_to_ms(curr_beat.duration),
+                50,
+                s_to_ms(curr_beat.start)
+            )
+            animations.push(...random_flashes)
+            break
+        case "random_flashes_nc":
+            let random_flashes_nc = g.genRandomFlashes(
+                false,
+                0.15,
+                s_to_ms(curr_beat.duration),
+                30,
+                s_to_ms(curr_beat.start)
+            )
+            animations.push(...random_flashes_nc)
+            break
+  }
 
 
     return {
