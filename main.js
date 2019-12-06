@@ -404,7 +404,7 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
     for(let num = 0; num<sections.length; num++){
       let section_animations = [];
       if(sections[num].the_loudest_section){
-        // section_animations = ["police"];
+        console.log(num, "the_loudest_section");
         for(let k = 0; k<anims_array.length; k++){
           section_animations.push(anims_array[k]);
         }
@@ -436,13 +436,16 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
           continue;
         }
 
+
         let animations = animationToBeat(times);
         let sec_curr_anim = section_animations[s];
         for(let a = 0; a<animations.length; a++){
+          if(beats[bi].confidence == undefined){
+            console.log("B_LEN:", beats.length, "BI:", bi);
+          }
           if(beats[bi].confidence == 0){
             continue;
           }
-
           let two_colors = getTwoColors(prev_color);
           let color_1;
           let color_2;
@@ -490,7 +493,7 @@ function describeSections(ana){
     let chosen_segments = [];
     let the_loudest_section = {
       index: 0,
-      loudness: sections[0]
+      loudness: sections[0].loudness
     };
 
     // console.log(sections);
@@ -530,6 +533,7 @@ function describeSections(ana){
       sections[i].the_loudest_section = false;
       if(sections[i].loudness > the_loudest_section.loudness){
         the_loudest_section.index = i;
+        the_loudest_section.loudness = sections[i].loudness;
       }
       if(i == 0){
         sections[i].duration = sections[i].duration - 1;
@@ -544,7 +548,7 @@ function describeSections(ana){
     sections[the_loudest_section.index].the_loudest_section = true;
     // console.log("\n\nPO:\n");
     // console.log(sections);
-    // console.log("loudest", the_loudest_section);
+    console.log("loudest", the_loudest_section);
     let section_pointer = 0;
     let already_passed = false;
     for(let j = 0; j<segments.length; j++){
@@ -571,22 +575,27 @@ function songClimate(features){
     // happy colors: hue<180. sad colors: hue>180
     let song_colors = generateColors(features, 8);
     // let animations = ["sweep", "pulse", "fmfs", "GradientOverTime"];
-    let animations = ["sweep", "pulse"];
+    let animations = ["sweep", "pulse", "fmfs"];
+    // let animations = ["ping", "ping", "ping"];
     let strobo_present = false;
     let energetic = features.danceability + features.energy;
+    if(features.tempo<100){
+      animations.push("gradient");
+    }
     if(energetic > 1.25){
-      animations.push("police");
+      animations.push("ping");
       if(features.tempo>125 &&
         energetic > 1.38 &&
         features.valence < 0.67){
         strobo_present = true;
+        animations.push("random_flashes");
       }
       if(features.tempo>115){
-        // animations.push("pingpong");
-        animations.push("fmfs");
+        // animations.push("ping");
+        animations.push("police");
       }
-      if(features.tempo>125 && features.valence < 0.6){
-        // animations.push("randomflashes");
+      if(features.tempo>120 && features.valence < 0.7){
+        animations.push("random_flashes_nc");
       }
     }
     let return_object = {
