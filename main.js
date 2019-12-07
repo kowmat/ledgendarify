@@ -396,7 +396,7 @@ function getTwoColors(prev_color){
   return [color, second_color];
 }
 
-function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=4, song_position, animations_per_song = 3, seek=false){
+function genBeatsAnims(sections, beats, bars, colors_array, anims_array, strobo_present){
   return new Promise(function(resolve, reject){
     let beats_generated = [];
     let prev_color = randomColor();
@@ -423,6 +423,7 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
       let times = sections[num].time_signature;
       console.log("TIMES", num ,":", times);
       let two_colors_prev = getTwoColors(prev_color);
+      let prev_bi = 0;
       for(let bi = indexes[0]; bi<indexes[1];){
         for(let x = indexes[0]; x<indexes[1]; x++){
           beats[x].bar_start = false;
@@ -435,20 +436,20 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
           bi++;
           continue;
         }
-
-
         let animations = animationToBeat(times);
         let sec_curr_anim = section_animations[s];
+        let two_colors = getTwoColors(prev_color);
+        let color_1;
+        let color_2;
         for(let a = 0; a<animations.length; a++){
           if(beats[bi].confidence == undefined){
             console.log("B_LEN:", beats.length, "BI:", bi);
           }
           if(beats[bi].confidence == 0){
+            bi++;
             continue;
           }
-          let two_colors = getTwoColors(prev_color);
-          let color_1;
-          let color_2;
+          two_colors = getTwoColors(prev_color);
           color_1 = two_colors[0];
           color_2 = two_colors[0];
           prev_color = two_colors[0];
@@ -464,18 +465,54 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, repeat=
             color_1, color_2, prev_color,
             getTwoColors
           )
+
           if ( obj_resolved.animations.length != 0 ) {
             bi++;
             beats_generated = beats_generated.concat(obj_resolved.animations);
           }
+          else{
+            console.log("LEN == 0");
+          }
         }
-
+        // console.log("STROBO:", strobo_present);
         if( s < (section_animations.length-1) ) {
           s++;
         }
         else{
           s = 0;
         }
+      }
+
+      if(sections[num].the_loudest_section && strobo_present){
+        let strobo_color;
+        let rgb_p = Math.floor(Math.random()*3);
+        let color_a = [0, 0, 0];
+        let color_b = [0, 0, 0];
+        color_a[rgb_p] = 255;
+        color_b[0] = color_a[1];
+        color_b[1] = color_a[2];
+        color_b[2] = color_a[0];
+        console.log("FULL DURATION", s_to_ms(beats[indexes[0]].duration*6));
+        let strobo_duration = limit(s_to_ms(beats[indexes[0]].duration*6), 0, 40000);
+        let strobo = generators.genStrobo(
+          strobo_duration,
+          68,
+          s_to_ms(beats[indexes[0]].start),
+            generators.genColor(
+                color_a[0], color_a[1], color_a[2]
+            ),
+            generators.genColor(
+                color_a[0], color_a[1], color_a[2]
+            ),
+            generators.genColor(
+                color_b[0], color_b[1], color_b[2]
+            ),
+            generators.genColor(
+                color_b[0], color_b[1], color_b[2]
+            )
+        );
+        beats_generated = beats_generated.concat(strobo);
+        console.log("STROBO PRESENT :D", strobo);
       }
     }
     resolve(beats_generated);
@@ -638,7 +675,7 @@ function generateAnims(track){
       describeSections(track.analysis).then((sections_desc) => {
         // console.log("climate",climate);
         // console.log("track_features", track.features);
-        genBeatsAnims(sections_desc, track.analysis.beats, track.analysis.bars, climate.song_colors, climate.animations).then((data) => {
+        genBeatsAnims(sections_desc, track.analysis.beats, track.analysis.bars, climate.song_colors, climate.animations, climate.strobo).then((data) => {
           track.beats_anims = data;
           console.log("BeatsAnims generated length:", track.beats_anims.length);
           resolve(Date.now()-start_time);
@@ -731,10 +768,6 @@ function fetchAnalysis(current_track_id, next_track_1_id, next_track_2_id, event
         generateAnims(tracks_analysis.current_track).then((offset)=>{
           console.log("anims generated");
           sendAnims(tracks_analysis.current_track.beats_anims, offset);
-          console.log("pos2", offset);
-
-          console.log("anims sent");
-
         });
         // console.log("CUR:", tracks_analysis.current_track.id);
         let nt1_promise = fetchSingleAnalysis(next_track_1_id).then(function(data){
