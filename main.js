@@ -442,7 +442,9 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, strobo_
         let color_1;
         let color_2;
         for(let a = 0; a<animations.length; a++){
-          if(beats[bi].confidence == undefined){
+          if(beats[bi] == undefined){
+            console.log("BI", bi, "indexes", indexes);
+            console.log("EATS[BI]", beats[bi]);
             console.log("B_LEN:", beats.length, "BI:", bi);
           }
           if(beats[bi].confidence == 0){
@@ -481,6 +483,7 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, strobo_
         else{
           s = 0;
         }
+
       }
 
       if(sections[num].the_loudest_section && strobo_present){
@@ -511,10 +514,12 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, strobo_
                 color_b[0], color_b[1], color_b[2]
             )
         );
+        // console.log("beats index indexes[0]", beats[indexes[0]]);
         beats_generated = beats_generated.concat(strobo);
-        console.log("STROBO PRESENT :D", strobo);
+        // console.log("STROBO PRESENT :D", strobo);
       }
     }
+    // console.log(beats_generated);
     resolve(beats_generated);
   });
 }
@@ -753,9 +758,9 @@ function fetchAnalysis(current_track_id, next_track_1_id, next_track_2_id, event
       // console.log("PLAY HERE", tracks_analysis);
       sendAnims(
         tracks_analysis.current_track.beats_anims,
-        s_to_ms(player_state.state.position)
+        player_state.state.position
       );
-      console.log("pos", s_to_ms(player_state.state.position));
+      console.log("pos", player_state.state.position);
     }
       break;
     case "NEW SONG":
@@ -765,6 +770,7 @@ function fetchAnalysis(current_track_id, next_track_1_id, next_track_2_id, event
     case "PLAY START":
       let ct_promise = fetchSingleAnalysis(current_track_id).then(function(data){
         tracks_analysis.current_track = data;
+        clearAnimationQueue();
         generateAnims(tracks_analysis.current_track).then((offset)=>{
           console.log("anims generated");
           sendAnims(tracks_analysis.current_track.beats_anims, offset);
