@@ -32,7 +32,10 @@ func Sender(c chan<- []ledgend.Change, buffer *ledgend.SyncBuffer, fps int64) {
         // sending the changes
         if ( len(xord) > 0 ) {
             if ( SHOW_DEBUG ) {
-                log.Println("Clients connected:", ledserv.ClientsConnected())
+				connected_clients := ledserv.ClientsConnected()
+                if ( connected_clients == 0 ) {
+                log.Println("Clients connected:", )
+				}
                 log.Printf("Sending %d changes\n", len(xord))
             }
 

@@ -447,6 +447,11 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, strobo_
             console.log("EATS[BI]", beats[bi]);
             console.log("B_LEN:", beats.length, "BI:", bi);
           }
+
+          if (beats[bi] == null) {
+            continue;
+          }
+
           if(beats[bi].confidence == 0){
             bi++;
             continue;
@@ -715,7 +720,8 @@ function fetchSingleAnalysis(track_id){
         return null;
       }
     }, function(err) {
-      done(err);
+	  console.log(err);
+      //done(err);
     });
     let track_features = spotifyApi.getAudioFeaturesForTrack(track_id)
     .then(function(data2) {
@@ -726,7 +732,8 @@ function fetchSingleAnalysis(track_id){
         return null;
       }
     }, function(err) {
-      done(err);
+	  console.log(err);
+      //done(err);
     });
     Promise.all([analysis, track_features])
     .then(function(values){
@@ -891,8 +898,8 @@ ws_server.on('connection', (ws) => {
 
         break;
       case "change":
-        let reason = message_and_type["value"][0];
-        let change = message_and_type["value"][1];
+        let reason = message_and_type["value"][0] ?? '';
+        let change = message_and_type["value"][1] ?? '';
         if(!change.deviceChanged){
           // if(reason = "POSITION CHANGED"){
           //   console.log("WYNIK", Math.abs(player_state.state.position + (Date.now() - player_state.state.time_set) - change.position));
@@ -918,10 +925,11 @@ ws_server.on('connection', (ws) => {
               player_state.device_active = true;
             }
           }
+
           fetchAnalysis(
             change.current_track.id,
-            change.next_tracks[0].id,
-            change.next_tracks[1].id,
+            change.next_tracks[0]?.id ?? null,
+            change.next_tracks[1]?.id ?? null,
             reason
           );
         }

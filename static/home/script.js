@@ -31,13 +31,13 @@ function stateToTrackObject(state){
                       duration: state.track_window.current_track.duration_ms
                       };
   info.next_tracks = []; //v
-  if(typeof state.track_window.next_tracks[0].id !== 'undefined'){
+  if(state.track_window.next_tracks[0]?.id != null){
     info.next_tracks[0] = {id: state.track_window.next_tracks[0].id,
       name: state.track_window.next_tracks[0].name,
       duration: state.track_window.next_tracks[0].duration_ms
     };
   }
-  if(typeof state.track_window.next_tracks[1].id !== 'undefined'){
+  if(state.track_window.next_tracks[1]?.id != null){
     info.next_tracks[1] = {id: state.track_window.next_tracks[1].id,
                         name: state.track_window.next_tracks[1].name,
                         duration: state.track_window.next_tracks[1].duration_ms
@@ -54,8 +54,8 @@ function diffTrackObjects(object_new, object_old){
   if(object_new.deviceChanged){
     return "DEVICE INACTIVE";
   }
-  else if(object_new.current_track.id != object_old.current_track.id){
-    if(object_new.current_track.id == object_old.next_tracks[0].id){
+  else if(object_new.current_track?.id != object_old.current_track?.id){
+    if(object_new.current_track?.id == object_old.next_tracks[0]?.id){
       return "SONG SKIP";
     }
     else {
@@ -81,8 +81,8 @@ function diffTrackObjects(object_new, object_old){
   else if(object_new.repeat_mode != object_old.repeat_mode){
     return "REPEAT MODE "+object_new.repeat_mode;
   }
-  else if(object_new.next_tracks[0].id != object_old.next_tracks[0].id ||
-          object_new.next_tracks[1].id != object_old.next_tracks[1].id){
+  else if(object_new.next_tracks[0]?.id != object_old.next_tracks[0]?.id ||
+          object_new.next_tracks[1]?.id != object_old.next_tracks[1]?.id){
     return "QUEUE CHANGED";
   }
   else if(object_new.duration != object_old.duration){
