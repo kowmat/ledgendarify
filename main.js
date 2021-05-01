@@ -231,7 +231,11 @@ function limit(x, min, max){
 }
 
 function generateColors(features, num_of_colors=7){
-  let valueRangeBottom = roundToTwo(mapVal(features.tempo, 100, 150, 0.5, 1));
+  if (features == null) {
+	  return;
+  }
+
+  let valueRangeBottom = roundToTwo(mapVal(features?.tempo, 100, 150, 0.5, 1));
   let colors_rgb = [];
   let colors_h = [];
   let colors_s = [];
@@ -531,6 +535,9 @@ function genBeatsAnims(sections, beats, bars, colors_array, anims_array, strobo_
 
 
 function describeSections(ana){
+  if (ana == null) {
+    return Promise.resolve(null);
+  }
   return new Promise(function(resolve, reject){
     let duration = ana.track.duration;
     let beats = ana.beats;
@@ -617,6 +624,14 @@ function describeSections(ana){
 
 
 function songClimate(features){
+  if (features == null) {
+	return Promise.resolve({
+      song_colors: null,
+      animations: null,
+      strobo: null,
+    });
+  }
+
   return new Promise(function(resolve, reject){
     //add colors and some randomness
     // happy colors: hue<180. sad colors: hue>180
@@ -681,7 +696,15 @@ function sendAnims(arr_anims, offset=0){
 function generateAnims(track){
   let start_time = Date.now();
   return new Promise((resolve, reject) => {
+	if ( track == null ) {
+		resolve(null);
+	}
+
     songClimate(track.features).then((climate) => {
+	  if ( climate == null || track.analysis == null ) {
+		  return;
+	  }
+
       describeSections(track.analysis).then((sections_desc) => {
         // console.log("climate",climate);
         // console.log("track_features", track.features);
