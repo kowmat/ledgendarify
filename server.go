@@ -3,7 +3,7 @@ package main
 import (
     "github.com/franeklubi/ledgend"
     "github.com/franeklubi/ledserv"
-    . "./animserv"
+    . "github.com/kowmat/ledgendarify/animserv"
     "log"
 )
 
